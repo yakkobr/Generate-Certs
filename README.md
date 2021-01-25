@@ -1,9 +1,19 @@
 
 # Generate Self-Signed SSL Certificates
 
-This is a Windows/Linux app (x64) that generates a set of self-signed SSL certificates, including the Root CA cert.
+This is a Windows/Linux app (x64) that generates a self-signed SSL certificates, including the Root CA cert.
 
-### Why use Generate-Certs?
+### Files Created
+
+**Option #1 - 1 certificate:**
+
+![Generate-Certs Result - 1 cert](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/4.png)
+
+**Option #2 - 2 certificates:**
+
+![Generate-Certs Result - 2 certs](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/5.png)
+
+### Why Use Generate-Certs?
 1 minute to use this program compared to 30 minutes entering in and adjusting all the commands and files
 
 ### Notes
@@ -35,7 +45,7 @@ bash dotnet.sh -c 5.0
 
 Run Generate-Certs:
 ```
-wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.19/Generate-Certs
+wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.20/Generate-Certs
 chmod +x Generate-Certs
 ./Generate-Certs
 ```
@@ -50,10 +60,3 @@ chmod +x Generate-Certs
 
 ## Final Result
 ![Final Result](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/3.png)
-
-#### Files Created
-If you chose to create 1 certificate:
-![Generate-Certs Result - 1 cert](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/4.png)
-
-If you chose to create 2 certificates:
-![Generate-Certs Result - 2 certs](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/5.png)

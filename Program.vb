@@ -1,5 +1,6 @@
 Imports System.IO
 Imports System.Net
+Imports System.Reflection
 Imports System.Runtime.InteropServices
 
 Module Program
@@ -8,15 +9,23 @@ Module Program
     Dim destdir As String
     Dim slash As String
 
+    Const OutputDirectoryName As String = "SSL_Certs_Out"
+
+    Const CACertName As String = "ca"
+    Const CertificateCertName As String = "certificate"
+    Const ServerCertName As String = "server"
+    Const ClientCertName As String = "client"
+
     Sub Main()
-        Console.Title = "Generate-Certs"
+        Console.Title = Assembly.GetExecutingAssembly.GetName.Name
 
         If GetOS() = "Windows" Then
             slash = "\"
         Else
             slash = "/"
         End If
-        destdir = Environment.CurrentDirectory & slash & "SSL_Certs_Out"
+
+        destdir = Environment.CurrentDirectory & slash & OutputDirectoryName
 
 retry_openssl_test:
         Try
@@ -57,16 +66,28 @@ retry_openssl_test:
             Console.WriteLine()
 
             If todo = "1" Then
-                Try
-                    'Set temp file path
-                    Dim tf = Path.GetTempFileName & ".exe"
+                'Set temp file path
+                Dim tf = Path.GetTempFileName & ".exe"
 
-                    'Download installer
+                Try
+                    'Download OpenSSL installer
                     Dim url As String = "https://slproweb.com/download/Win32OpenSSL-1_1_1i.exe"
                     Dim wc As New WebClient
                     Console.WriteLine("Downloading, this should take less than 5 minutes...")
                     wc.DownloadFile(url, tf)
                     Console.WriteLine("Download complete, installing, this should take less than 5 minutes...")
+                Catch ex_download As Exception
+                    Try
+                        File.Delete(tf)
+                    Catch ex_download_delete As Exception
+                    End Try
+                    Console.WriteLine("Error downloading OpenSSL. Possible firewall or content filtering issue?")
+                    Console.ReadLine()
+                    End
+                End Try
+
+                Try
+                    'Install OpenSSL
                     Dim pp As New Process
                     pp.StartInfo.FileName = tf
                     pp.StartInfo.Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
@@ -96,8 +117,8 @@ retry_openssl_test:
 
                     'Retry OpenSSL test
                     GoTo retry_openssl_test
-                Catch ex2 As Exception
-                    Console.WriteLine("Error downloading OpenSSL. Please download and install it manually then run Generate-Certs again.")
+                Catch ex_install As Exception
+                    Console.WriteLine("Error installing OpenSSL. Are you running as Administrator?")
                     Console.ReadLine()
                     End
                 End Try
@@ -193,6 +214,7 @@ keysize_retry:
         Console.WriteLine()
         Console.WriteLine("What key size do you want? I recommend either 2048 Or 4096.")
         Console.WriteLine("The higher the number the more secure. 2048 is still considered very secure and is the most common choice.")
+        Console.WriteLine("Press enter to automatically select (2) 2048")
         Console.WriteLine("(1) 1024 (2) 2048 (3) 3072 (4) 4096")
         Dim keysize_var As String = Nothing
         Dim keysize_line As String = Console.ReadLine()
@@ -205,7 +227,7 @@ keysize_retry:
         ElseIf keysize_line = "4" Then
             keysize_var = "4096"
         Else
-            GoTo keysize_retry
+            keysize_var = "2048"
         End If
 
 subject_retry:
@@ -253,35 +275,36 @@ san_retry:
         'Write temp files
         File.WriteAllText(destdir & "/generate-certs-serial", "00" & vbCrLf)
         File.WriteAllText(destdir & "/generate-certs-db", "")
-        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "Root Certificate Authority"))
-        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "SSL Certificate"))
+        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "Root Certificate Authority").Replace("{CACERTNAME}", CACertName))
+        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "SSL Certificate").Replace("{CACERTNAME}", CACertName))
 
         'Begin writing cert data
 
         'Root CA Certificate
         GenerateSection("Root CA Certificate")
-        GenerateRootCACertificate("ca", rootca_pw, keysize_var)
+        GenerateRootCACertificate(CACertName, rootca_pw, keysize_var)
 
         If oneortwo_var = "1" Then
             'One certificate
             GenerateSection("Certificate")
-            GenerateCertificate("certificate", certificate_pw, keysize_var)
+            GenerateCertificate(CertificateCertName, certificate_pw, keysize_var)
 
         ElseIf oneortwo_var = "2" Then
             'Two certificates
 
             'Server certificate
             GenerateSection("Server Certificate")
-            GenerateCertificate("server", server_pw, keysize_var)
+            GenerateCertificate(ServerCertName, server_pw, keysize_var)
 
             'Client certificate
             GenerateSection("Client Certificate")
-            GenerateCertificate("client", client_pw, keysize_var)
+            GenerateCertificate(ClientCertName, client_pw, keysize_var)
         End If
 
         GenerateSection("RESULTS")
         If rootca_pw.Length = 0 Then
             Console.WriteLine("WARNING: Root CA password not specified, PFX and PEM files NOT created")
+            Console.WriteLine()
         End If
         Console.WriteLine("Certificates have been generated!")
         Console.WriteLine()
@@ -340,11 +363,9 @@ san_retry:
                 Try
                     fri.Delete()
                 Catch ex As Exception
-
                 End Try
             Next
         Catch ex As Exception
-
         End Try
     End Sub
 
@@ -368,7 +389,6 @@ san_retry:
                 Try
                     File.Delete(destdir & slash & p)
                 Catch ex As Exception
-
                 End Try
             End If
         Next
@@ -440,8 +460,8 @@ dir = .
 database = $dir/generate-certs-db
 new_certs_dir = $dir/
 serial = $dir/generate-certs-serial
-private_key = ./ca-secret.key
-certificate = ./ca.crt
+private_key = ./{CACERTNAME}-secret.key
+certificate = ./{CACERTNAME}.crt
 default_days = 3650
 default_md = sha256
 policy = policy_anything
