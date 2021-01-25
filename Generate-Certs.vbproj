@@ -36,4 +36,8 @@
     <Compile Remove="C:\Users\Administrator\.nuget\packages\postsharp.community.packer\1.1.0\build\Templates\ILTemplateWithUnmanagedHandler.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="screenshots\" />
+  </ItemGroup>
+
 </Project>
