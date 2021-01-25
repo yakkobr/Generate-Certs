@@ -9,7 +9,7 @@ Module Program
 
     Sub Main()
         If GetOS() = "Windows" Then
-            destdir = Environment.CurrentDirectory & "\SSL Certs"
+            destdir = Environment.CurrentDirectory & "\SSL_Certs"
         Else
             destdir = Environment.CurrentDirectory & "/SSL_Certs"
         End If
@@ -134,7 +134,7 @@ retry_specifypath:
         Console.WriteLine("     server.crt server.pem server.pfx server.key server-secret.key server.csr")
         Console.WriteLine("     ca.key ca.pem ca.pfx ca-secret.key ca.crt ")
         Console.WriteLine()
-        Console.WriteLine("Please X out of this window or terminate the app if you do not want the above files to be deleted")
+        Console.WriteLine("Press Ctrl-C to terminate the app if you do not want the above files to be deleted")
         Console.WriteLine("##################################################")
         Console.WriteLine()
         Console.WriteLine("Press enter to continue")
@@ -150,19 +150,16 @@ retry_specifypath:
         Console.WriteLine("############### CONFIGURATION ###################")
         Console.WriteLine("Please create passwords for your certs, or just press enter to not set a password")
         Console.WriteLine()
-        Console.WriteLine("Root CA Cert password is REQUIRED")
-        Console.WriteLine("Server/client Certs password is OPTIONAL")
+        Console.WriteLine("Root CA Cert password is REQUIRED if you want PFX and PEM files for the root CA cert created")
+        Console.WriteLine("Server/Client Certs password is OPTIONAL")
         Console.WriteLine("##################################################")
 
         Dim rootca_pw As String
         Dim server_pw As String
         Dim client_pw As String
 
-retry_rootca:
         Console.Write("Root CA Cert Password: ")
         rootca_pw = Console.ReadLine
-        If rootca_pw.Length = 0 Then GoTo retry_rootca
-
         Console.Write("Server Cert Password:  ")
         server_pw = Console.ReadLine
         Console.Write("Client Cert Password:  ")
@@ -188,6 +185,7 @@ keysize_retry:
             Console.WriteLine("Sorry, I didn't understand your input, please try again")
             GoTo keysize_retry
         End If
+
         Console.WriteLine()
 
         Console.WriteLine("##################################################")
@@ -196,10 +194,11 @@ keysize_retry:
 
         openssl("genrsa -passout pass:""{0}"" -out ca-secret.key {1}".Replace("{0}", rootca_pw).Replace("{1}", keysize_var))
         openssl("rsa -passin pass:""{0}"" -in ca-secret.key -out ca.key".Replace("{0}", rootca_pw))
-        openssl("req -x509 -new -days 3650 -key ca.key -out ca.crt -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
-        openssl("pkcs12 -export -passout pass:""{0}"" -inkey ca.key -in ca.crt -out ca.pfx".Replace("{0}", rootca_pw))
-        openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ca.pfx -out ca.pem".Replace("{0}", rootca_pw))
-
+        openssl("req -x509 -new -days 3650 -key ca.key -sha256 -out ca.crt -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
+        If rootca_pw.Length > 0 Then
+            openssl("pkcs12 -export -passout pass:""{0}"" -inkey ca.key -in ca.crt -out ca.pfx".Replace("{0}", rootca_pw))
+            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ca.pfx -out ca.pem".Replace("{0}", rootca_pw))
+        End If
         Console.WriteLine()
 
         Console.WriteLine("##################################################")
@@ -211,7 +210,7 @@ keysize_retry:
         openssl("req -new -key server.key -out server.csr -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
         openssl("x509 -req -days 3650 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt".Replace("{0}", server_pw))
         openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in server.crt -out server.pfx".Replace("{0}", server_pw))
-        openssl("pkcs12 -passin pass:""{0}"" -passout pass:qwerty -in server.pfx -out server.pem".Replace("{0}", server_pw))
+        openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in server.pfx -out server.pem".Replace("{0}", server_pw))
 
         Console.WriteLine("##################################################")
         Console.WriteLine("Client Certificate")
@@ -222,10 +221,13 @@ keysize_retry:
         openssl("req -new -key client.key -out client.csr -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
         openssl("x509 -req -days 3650 -in client.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out client.crt".Replace("{0}", client_pw))
         openssl("pkcs12 -export -passout pass:""{0}"" -inkey client.key -in client.crt -out client.pfx".Replace("{0}", client_pw))
-        openssl("pkcs12 -passin pass:""{0}"" -passout pass:qwerty -in client.pfx -out client.pem".Replace("{0}", client_pw))
+        openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in client.pfx -out client.pem".Replace("{0}", client_pw))
 
         Console.WriteLine()
         Console.WriteLine("##################################################")
+        If rootca_pw.Length = 0 Then
+            Console.WriteLine("WARNING: Root CA password not specified, ca.pfx and ca.pem files NOT created")
+        End If
         Console.WriteLine("Done!")
         Console.WriteLine()
         Console.WriteLine("Don't forget the passwords you used for the certificates:")
