@@ -6,7 +6,8 @@ Takes 1 minute to use this program compared to 15-30 minutes entering in and adj
  
 - You will be asked to set the password for the Root CA cert, the Server Cert, and the Client cert. The Root CA cert requires a password if you want PFX and PEM files created, server/client password is optional.
 - You will also be asked what key size to use for the certs. Most people use 2048 as it is still considered secure.
-- Files are created in the same directory as the Generate-Certs program is lauched.
+- Certificates expire 3650 days after day of certificate generation.
+- Files are created in the SSL_Certs subdirectory from where Generate-Certs program is lauched.
 
 ## Windows
 
@@ -24,7 +25,7 @@ bash dotnet.sh -c 5.0
 
 Run Generate-Certs:
 ```
-wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.13/Generate-Certs
+wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.14/Generate-Certs
 chmod +x Generate-Certs
 ./Generate-Certs
 ```
