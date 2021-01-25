@@ -24,7 +24,7 @@ bash dotnet.sh -c 5.0
 
 Run Generate-Certs:
 ```
-wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.12/Generate-Certs
+wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.13/Generate-Certs
 chmod +x Generate-Certs
 ./Generate-Certs
 ```
@@ -45,5 +45,4 @@ chmod +x Generate-Certs
 
 # TO DO
 
-- Fix CSR extentions not transferring to certs (modify openssl.cnf)
-- Make SAN primary instead of CN
+- 1 cert only option
