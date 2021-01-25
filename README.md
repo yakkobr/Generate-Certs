@@ -43,7 +43,3 @@ chmod +x Generate-Certs
 
 ## Created Files
 ![Generate-Certs Result](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/4.png)
-
-# TO DO
-
-- 1 cert only option

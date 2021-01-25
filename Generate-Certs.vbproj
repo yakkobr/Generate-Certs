@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Generate_Certs</RootNamespace>
     <TargetFramework>net5.0</TargetFramework>
-    <Version>0.0.16</Version>
+    <Version>0.0.17</Version>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
   </PropertyGroup>
 
@@ -34,10 +34,6 @@
 
   <ItemGroup>
     <Compile Remove="C:\Users\Administrator\.nuget\packages\postsharp.community.packer\1.1.0\build\Templates\ILTemplateWithUnmanagedHandler.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="screenshots\" />
   </ItemGroup>
 
 </Project>
