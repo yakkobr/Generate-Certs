@@ -231,8 +231,10 @@ san_retry:
         Dim dbPath As String = destdir & "/generate-certs-db"
         File.WriteAllText(dbPath, "")
 
-        Dim opensslcfgPath As String = destdir & "/generate-certs.conf"
-        File.WriteAllText(opensslcfgPath, GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san))
+        Dim opensslcfgPathCA As String = destdir & "/generate-certs-ca.conf"
+        Dim opensslcfgPathCERTS As String = destdir & "/generate-certs-certs.conf"
+        File.WriteAllText(opensslcfgPathCA, GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", "basicConstraints = CA:true"))
+        File.WriteAllText(opensslcfgPathCERTS, GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", ""))
 
         'Begin writing cert data
         Console.WriteLine()
@@ -243,7 +245,7 @@ san_retry:
 
         openssl("genrsa -passout pass:""{0}"" -out ca-secret.key {1}".Replace("{0}", rootca_pw).Replace("{1}", keysize_var))
         openssl("rsa -passin pass:""{0}"" -in ca-secret.key -out ca.key".Replace("{0}", rootca_pw))
-        openssl("req -new -x509 -config generate-certs.conf -key ca.key -out ca.crt")
+        openssl("req -new -x509 -config generate-certs-ca.conf -key ca.key -out ca.crt")
         If rootca_pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ca.key -in ca.crt -out ca.pfx".Replace("{0}", rootca_pw))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ca.pfx -out ca.pem".Replace("{0}", rootca_pw))
@@ -256,8 +258,8 @@ san_retry:
 
         openssl("genrsa -passout pass:""{0}"" -out server-secret.key {1}".Replace("{0}", server_pw).Replace("{1}", keysize_var))
         openssl("rsa -passin pass:""{0}"" -in server-secret.key -out server.key".Replace("{0}", server_pw))
-        openssl("req -new -config generate-certs.conf -key server.key -out server.csr")
-        openssl("ca -config generate-certs.conf -create_serial -batch -in server.csr -out server.crt")
+        openssl("req -new -config generate-certs-certs.conf -key server.key -out server.csr")
+        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in server.csr -out server.crt")
         If rootca_pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in server.crt -out server.pfx".Replace("{0}", server_pw))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in server.pfx -out server.pem".Replace("{0}", server_pw))
@@ -270,8 +272,8 @@ san_retry:
 
         openssl("genrsa -passout pass:""{0}"" -out client-secret.key {1}".Replace("{0}", client_pw).Replace("{1}", keysize_var))
         openssl("rsa -passin pass:""{0}"" -in client-secret.key -out client.key".Replace("{0}", client_pw))
-        openssl("req -new -config generate-certs.conf -key client.key -out client.csr")
-        openssl("ca -config generate-certs.conf -create_serial -batch -in client.csr -out client.crt")
+        openssl("req -new -config generate-certs-certs.conf -key client.key -out client.csr")
+        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in client.csr -out client.crt")
         If rootca_pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey client.key -in client.crt -out client.pfx".Replace("{0}", client_pw))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in client.pfx -out client.pem".Replace("{0}", client_pw))
@@ -421,6 +423,7 @@ O = Self-Signed Certificate
 
 [v3_ca]
 subjectAltName = @alt_names
+{CA}
 
 [alt_names]
 {ALT}
