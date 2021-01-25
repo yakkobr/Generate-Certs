@@ -4,10 +4,10 @@ This is a Windows/Linux app (x64) that generates a set of self-signed SSL certif
 
 Takes 1 minute to use this program compared to 15-30 minutes entering in and adjusting all the commands
  
-- You will be asked to set the password for the Root CA cert, the Server Cert, and the Client cert. The Root CA cert requires a password if you want PFX and PEM files created, server/client password is optional.
+- You will be asked to set the password for the certs. The Root CA cert requires a password if you want PFX and PEM files created (for all files).
 - You will also be asked what key size to use for the certs. Most people use 2048 as it is still considered secure.
 - Certificates expire 3650 days after day of certificate generation.
-- Files are created in the SSL_Certs subdirectory from where Generate-Certs program is lauched.
+- Files are created in the SSL_Certs_Out subdirectory from where Generate-Certs program is lauched.
 
 ## Windows
 

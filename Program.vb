@@ -16,7 +16,7 @@ Module Program
         Else
             slash = "/"
         End If
-        destdir = Environment.CurrentDirectory & slash & "SSL_Certs"
+        destdir = Environment.CurrentDirectory & slash & "SSL_Certs_Out"
 
 retry_openssl_test:
         Try
