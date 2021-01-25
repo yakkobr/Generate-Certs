@@ -6,13 +6,15 @@ Module Program
 
     Dim openssl_manual_path As String
     Dim destdir As String
+    Dim slash As String
 
     Sub Main()
         If GetOS() = "Windows" Then
-            destdir = Environment.CurrentDirectory & "\SSL_Certs"
+            slash = "\"
         Else
-            destdir = Environment.CurrentDirectory & "/SSL_Certs"
+            slash = "/"
         End If
+        destdir = Environment.CurrentDirectory & slash & "SSL_Certs"
 
 retry_openssl_test:
         Try
@@ -127,12 +129,7 @@ retry_specifypath:
         Console.WriteLine()
         Console.WriteLine("The following folder will be used to store the certificates:")
         Console.WriteLine(destdir)
-        Console.WriteLine("Any existing certificate data in the directory shown above will be erased and overwritten")
-        Console.WriteLine()
-        Console.WriteLine("List of files to be deleted if they exist:")
-        Console.WriteLine("     client.crt client.pem client.pfx client.csr client.key client-secret.key")
-        Console.WriteLine("     server.crt server.pem server.pfx server.key server-secret.key server.csr")
-        Console.WriteLine("     ca.key ca.pem ca.pfx ca-secret.key ca.crt ")
+        Console.WriteLine("Any existing data in the directory shown above will be erased and overwritten")
         Console.WriteLine()
         Console.WriteLine("Press Ctrl-C to terminate the app if you do not want the above files to be deleted")
         Console.WriteLine("##################################################")
@@ -143,6 +140,7 @@ retry_specifypath:
 
         'Delete existing certificates
         DeleteCertFiles()
+        DeleteTempCertFiles()
 
         Console.Clear()
 
@@ -185,6 +183,58 @@ keysize_retry:
             GoTo keysize_retry
         End If
 
+subject_retry:
+        Console.WriteLine()
+        Console.WriteLine("What is the SUBJECT of the certificate?")
+        Console.WriteLine("Usually this is the hostname that you'll connect over, such as localhost or your.domain.com")
+        Console.WriteLine("If you want to enter an IP address, wait until the next question")
+        Console.WriteLine("Press enter to set to localhost")
+        Console.WriteLine()
+        Dim cn As String = Nothing
+        Dim subj_var As String = Nothing
+        Dim subj_line As String = Console.ReadLine
+        If subj_line.Length > 0 Then
+            subj_var = subj_line
+        Else
+            subj_var = "localhost"
+        End If
+        cn = "CN = " & subj_var
+
+san_retry:
+        Console.WriteLine()
+        Console.WriteLine("What is the SUBJECT ALTERNATIVE NAME (SAN) of the certificate?")
+        Console.WriteLine("Usually this is an alternate hostname such as 127.0.0.1 or alt.domain.com")
+        Console.WriteLine("If you are using the certificates to connect over an IP address rather than a hostname, enter that IP address here")
+        Console.WriteLine("Press enter to skip")
+        Dim san As String = Nothing
+        Dim san_var As String = Nothing
+        Dim san_line As String = Console.ReadLine
+        If san_line.Length > 0 Then
+            Try
+                Dim parsedIP As String = IPAddress.Parse(san_line).ToString
+                If parsedIP IsNot Nothing Then
+                    san_var = "IP.1 = " & parsedIP
+                End If
+            Catch ex As Exception
+
+            End Try
+            If san_var = Nothing Then
+                san_var = "DNS.2 = " & san_line
+            End If
+        End If
+        san = "DNS.1 = " & subj_var & vbCrLf & san_var
+
+        'Write temp files
+        Dim serialPath As String = destdir & "/generate-certs-serial"
+        File.WriteAllText(serialPath, "00" & vbCrLf)
+
+        Dim dbPath As String = destdir & "/generate-certs-db"
+        File.WriteAllText(dbPath, "")
+
+        Dim opensslcfgPath As String = destdir & "/generate-certs.conf"
+        File.WriteAllText(opensslcfgPath, GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san))
+
+        'Begin writing cert data
         Console.WriteLine()
 
         Console.WriteLine("##################################################")
@@ -193,7 +243,7 @@ keysize_retry:
 
         openssl("genrsa -passout pass:""{0}"" -out ca-secret.key {1}".Replace("{0}", rootca_pw).Replace("{1}", keysize_var))
         openssl("rsa -passin pass:""{0}"" -in ca-secret.key -out ca.key".Replace("{0}", rootca_pw))
-        openssl("req -x509 -new -days 3650 -key ca.key -sha256 -out ca.crt -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
+        openssl("req -new -x509 -config generate-certs.conf -key ca.key -out ca.crt")
         If rootca_pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ca.key -in ca.crt -out ca.pfx".Replace("{0}", rootca_pw))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ca.pfx -out ca.pem".Replace("{0}", rootca_pw))
@@ -206,8 +256,8 @@ keysize_retry:
 
         openssl("genrsa -passout pass:""{0}"" -out server-secret.key {1}".Replace("{0}", server_pw).Replace("{1}", keysize_var))
         openssl("rsa -passin pass:""{0}"" -in server-secret.key -out server.key".Replace("{0}", server_pw))
-        openssl("req -new -key server.key -out server.csr -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
-        openssl("x509 -req -days 3650 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt".Replace("{0}", server_pw))
+        openssl("req -new -config generate-certs.conf -key server.key -out server.csr")
+        openssl("ca -config generate-certs.conf -create_serial -batch -in server.csr -out server.crt")
         If rootca_pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in server.crt -out server.pfx".Replace("{0}", server_pw))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in server.pfx -out server.pem".Replace("{0}", server_pw))
@@ -220,8 +270,8 @@ keysize_retry:
 
         openssl("genrsa -passout pass:""{0}"" -out client-secret.key {1}".Replace("{0}", client_pw).Replace("{1}", keysize_var))
         openssl("rsa -passin pass:""{0}"" -in client-secret.key -out client.key".Replace("{0}", client_pw))
-        openssl("req -new -key client.key -out client.csr -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
-        openssl("x509 -req -days 3650 -in client.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out client.crt".Replace("{0}", client_pw))
+        openssl("req -new -config generate-certs.conf -key client.key -out client.csr")
+        openssl("ca -config generate-certs.conf -create_serial -batch -in client.csr -out client.crt")
         If rootca_pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey client.key -in client.crt -out client.pfx".Replace("{0}", client_pw))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in client.pfx -out client.pem".Replace("{0}", client_pw))
@@ -243,6 +293,8 @@ keysize_retry:
         Console.WriteLine(destdir)
         Console.WriteLine("##################################################")
         Console.WriteLine()
+
+        DeleteTempCertFiles()
 
         Console.ReadLine()
 
@@ -295,6 +347,28 @@ keysize_retry:
         Next
     End Sub
 
+    ''' <summary>
+    ''' Deletes temporary certificate files
+    ''' </summary>
+    Private Sub DeleteTempCertFiles()
+        Dim certfiles As String() = {
+            "00.pem", "01.pem", "02.pem", "03.pem",
+            "generate-certs-db", "generate-certs-db.attr", "generate-certs-db.attr.old", "generate-certs-db.old",
+            "generate-certs-serial", "generate-certs-serial.old",
+            "generate-certs.conf"
+            }
+
+        For Each cf As String In certfiles
+            If File.Exists(destdir & "\" & cf) Then
+                Try
+                    File.Delete(destdir & "\" & cf)
+                Catch ex As Exception
+
+                End Try
+            End If
+        Next
+    End Sub
+
     Function GetOS() As String
         Dim OS As String = Nothing
 
@@ -307,5 +381,49 @@ keysize_retry:
         End If
 
         Return OS
+    End Function
+
+    Function GetOpenSslCfg() As String
+        Return "[ca]
+default_ca = CA_default
+
+[CA_default]
+dir = .
+database = $dir/generate-certs-db
+new_certs_dir = $dir/
+serial = $dir/generate-certs-serial
+private_key = ./ca-secret.key
+certificate = ./ca.crt
+default_days = 3650
+default_md = sha256
+policy = policy_anything
+copy_extensions = copyall
+unique_subject	= no
+
+[policy_anything]
+countryName = optional
+stateOrProvinceName = optional
+localityName = optional
+organizationName = optional
+organizationalUnitName = optional
+commonName = supplied
+emailAddress = optional
+
+[req]
+prompt = no
+distinguished_name = req_distinguished_name
+req_extensions = v3_ca
+x509_extensions	= v3_ca
+
+[req_distinguished_name]
+O = Self-Signed Certificate
+{CN}
+
+[v3_ca]
+subjectAltName = @alt_names
+
+[alt_names]
+{ALT}
+"
     End Function
 End Module
