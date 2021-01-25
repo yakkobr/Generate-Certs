@@ -25,7 +25,7 @@ bash dotnet.sh -c 5.0
 
 Run Generate-Certs:
 ```
-wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.17/Generate-Certs
+wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.18/Generate-Certs
 chmod +x Generate-Certs
 ./Generate-Certs
 ```

@@ -362,9 +362,9 @@ san_retry:
 
     Sub DeleteIfExists(path As String())
         For Each p As String In path
-            If File.Exists(destdir & "\" & p) Then
+            If File.Exists(destdir & slash & p) Then
                 Try
-                    File.Delete(destdir & "\" & p)
+                    File.Delete(destdir & slash & p)
                 Catch ex As Exception
 
                 End Try
