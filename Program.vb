@@ -19,7 +19,7 @@ Module Program
     Sub Main()
         Console.Title = Assembly.GetExecutingAssembly.GetName.Name
 
-        If GetOS() = "Windows" Then
+        If GetOS() = OSPlatform.Windows Then
             slash = "\"
         Else
             slash = "/"
@@ -42,7 +42,7 @@ retry_openssl_test:
             o.StartInfo.RedirectStandardOutput = True
             o.Start()
         Catch ex As Exception
-            If GetOS() <> "Windows" Then
+            If GetOS() <> OSPlatform.Windows Then
                 'Non-Windows
                 Console.WriteLine("Could not detect OpenSSL. Please install it first and then run Generate-Certs.")
                 Console.WriteLine()
@@ -402,15 +402,15 @@ san_retry:
         Console.WriteLine()
     End Sub
 
-    Function GetOS() As String
-        Dim OS As String = Nothing
+    Function GetOS() As OSPlatform
+        Dim OS As OSPlatform
 
         If RuntimeInformation.IsOSPlatform(OSPlatform.Windows) Then
-            OS = "Windows"
+            OS = OSPlatform.Windows
         ElseIf RuntimeInformation.IsOSPlatform(OSPlatform.Linux) Then
-            OS = "Linux"
+            OS = OSPlatform.Linux
         ElseIf RuntimeInformation.IsOSPlatform(OSPlatform.OSX) Then
-            OS = "OSX"
+            OS = OSPlatform.OSX
         End If
 
         Return OS
