@@ -357,7 +357,7 @@ san_retry:
             "00.pem", "01.pem", "02.pem", "03.pem",
             "generate-certs-db", "generate-certs-db.attr", "generate-certs-db.attr.old", "generate-certs-db.old",
             "generate-certs-serial", "generate-certs-serial.old",
-            "generate-certs.conf"
+            "generate-certs-ca.conf", "generate-certs-certs.conf", "generate-certs.conf"
             }
 
         For Each cf As String In certfiles
