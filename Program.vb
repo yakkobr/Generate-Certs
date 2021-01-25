@@ -9,6 +9,8 @@ Module Program
     Dim slash As String
 
     Sub Main()
+        Console.Title = "Generate-Certs"
+
         If GetOS() = "Windows" Then
             slash = "\"
         Else
@@ -125,11 +127,11 @@ retry_specifypath:
 
         'Information
         Console.WriteLine("################### WARNING ######################")
-        Console.WriteLine("Generate-Certs generates client & server SSL certificates")
+        Console.WriteLine("Generate-Certs generates self-signed SSL certificates")
         Console.WriteLine()
         Console.WriteLine("The following folder will be used to store the certificates:")
-        Console.WriteLine(destdir)
-        Console.WriteLine("Any existing data in the directory shown above will be erased and overwritten")
+        Console.WriteLine("    " & destdir)
+        Console.WriteLine("Any existing data in the directory shown above will be erased and overwritten after pressing ENTER")
         Console.WriteLine()
         Console.WriteLine("Press Ctrl-C to terminate the app if you do not want the above files to be deleted")
         Console.WriteLine("##################################################")
@@ -139,28 +141,51 @@ retry_specifypath:
         Console.WriteLine()
 
         'Delete existing certificates
-        DeleteCertFiles()
-        DeleteTempCertFiles()
+        ClearOutputFolder()
+
+        'Create folder if needed
+        If Directory.Exists(destdir) = False Then
+            Directory.CreateDirectory(destdir)
+        End If
 
         Console.Clear()
 
-        'Configuration - cert passwords & key size
-        Console.WriteLine("############### CONFIGURATION ###################")
-        Console.WriteLine("Please create passwords for your certs, or just press enter to not set a password")
+oneortwo_retry:
         Console.WriteLine()
-        Console.WriteLine("Root CA Cert password is REQUIRED if you want PFX and PEM files created (for all files), otherwise optional")
-        Console.WriteLine("##################################################")
+        Console.WriteLine("Do you want one certificate (certificate.crt) or two certificates (server.crt and client.crt)?")
+        Console.WriteLine("A root certificate authority is created either way.")
+        Console.WriteLine("(1) one certificates (2) two certificates")
+        Dim oneortwo_var As String = Nothing
+        Dim oneortwo_line As String = Console.ReadLine
+        If oneortwo_line = "1" Then
+            oneortwo_var = "1"
+        ElseIf oneortwo_line = "2" Then
+            oneortwo_var = "2"
+        Else
+            GoTo oneortwo_retry
+        End If
 
-        Dim rootca_pw As String
-        Dim server_pw As String
-        Dim client_pw As String
+        Console.WriteLine()
+        Console.WriteLine("Please create passwords for your certs, or just press enter to not set a password")
+        Console.WriteLine("Root CA Cert password is REQUIRED if you want PFX and PEM files created (for all files), otherwise optional")
+        Console.WriteLine()
+
+        Dim rootca_pw As String = Nothing
+        Dim server_pw As String = Nothing
+        Dim client_pw As String = Nothing
+        Dim certificate_pw As String = Nothing
 
         Console.Write("Root CA Cert Password: ")
         rootca_pw = Console.ReadLine
-        Console.Write("Server Cert Password:  ")
-        server_pw = Console.ReadLine
-        Console.Write("Client Cert Password:  ")
-        client_pw = Console.ReadLine
+        If oneortwo_var = "1" Then
+            Console.Write("Certificate Password: ")
+            certificate_pw = Console.ReadLine
+        Else
+            Console.Write("Server Cert Password:  ")
+            server_pw = Console.ReadLine
+            Console.Write("Client Cert Password:  ")
+            client_pw = Console.ReadLine
+        End If
 
 keysize_retry:
         Console.WriteLine()
@@ -178,8 +203,6 @@ keysize_retry:
         ElseIf keysize_line = "4" Then
             keysize_var = "4096"
         Else
-            Console.WriteLine()
-            Console.WriteLine("Sorry, I didn't understand your input, please try again")
             GoTo keysize_retry
         End If
 
@@ -206,6 +229,7 @@ san_retry:
         Console.WriteLine("Usually this is an alternate hostname such as 127.0.0.1 or alt.domain.com")
         Console.WriteLine("If you are using the certificates to connect over an IP address rather than a hostname, enter that IP address here")
         Console.WriteLine("Press enter to skip")
+        Console.WriteLine()
         Dim san As String = Nothing
         Dim san_var As String = Nothing
         Dim san_line As String = Console.ReadLine
@@ -225,81 +249,57 @@ san_retry:
         san = "DNS.1 = " & subj_var & vbCrLf & san_var
 
         'Write temp files
-        Dim serialPath As String = destdir & "/generate-certs-serial"
-        File.WriteAllText(serialPath, "00" & vbCrLf)
-
-        Dim dbPath As String = destdir & "/generate-certs-db"
-        File.WriteAllText(dbPath, "")
-
-        Dim opensslcfgPathCA As String = destdir & "/generate-certs-ca.conf"
-        Dim opensslcfgPathCERTS As String = destdir & "/generate-certs-certs.conf"
-        File.WriteAllText(opensslcfgPathCA, GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", "basicConstraints = CA:true"))
-        File.WriteAllText(opensslcfgPathCERTS, GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", ""))
+        File.WriteAllText(destdir & "/generate-certs-serial", "00" & vbCrLf)
+        File.WriteAllText(destdir & "/generate-certs-db", "")
+        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", "basicConstraints = CA:true"))
+        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", ""))
 
         'Begin writing cert data
-        Console.WriteLine()
 
-        Console.WriteLine("##################################################")
-        Console.WriteLine("Root CA Certificate")
-        Console.WriteLine("##################################################")
+        'Root CA Certificate
+        GenerateSection("Root CA Certificate")
+        GenerateRootCACertificate("ca", rootca_pw, keysize_var)
 
-        openssl("genrsa -passout pass:""{0}"" -out ca-secret.key {1}".Replace("{0}", rootca_pw).Replace("{1}", keysize_var))
-        openssl("rsa -passin pass:""{0}"" -in ca-secret.key -out ca.key".Replace("{0}", rootca_pw))
-        openssl("req -new -x509 -config generate-certs-ca.conf -key ca.key -out ca.crt")
-        If rootca_pw.Length > 0 Then
-            openssl("pkcs12 -export -passout pass:""{0}"" -inkey ca.key -in ca.crt -out ca.pfx".Replace("{0}", rootca_pw))
-            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ca.pfx -out ca.pem".Replace("{0}", rootca_pw))
+        If oneortwo_var = "1" Then
+            'One certificate
+            GenerateSection("Certificate")
+            GenerateCertificate("certificate", certificate_pw, keysize_var)
+
+        ElseIf oneortwo_var = "2" Then
+            'Two certificates
+
+            'Server certificate
+            GenerateSection("Server Certificate")
+            GenerateCertificate("server", server_pw, keysize_var)
+
+            'Client certificate
+            GenerateSection("Client Certificate")
+            GenerateCertificate("client", client_pw, keysize_var)
         End If
-        Console.WriteLine()
 
-        Console.WriteLine("##################################################")
-        Console.WriteLine("Server Certificate")
-        Console.WriteLine("##################################################")
-
-        openssl("genrsa -passout pass:""{0}"" -out server-secret.key {1}".Replace("{0}", server_pw).Replace("{1}", keysize_var))
-        openssl("rsa -passin pass:""{0}"" -in server-secret.key -out server.key".Replace("{0}", server_pw))
-        openssl("req -new -config generate-certs-certs.conf -key server.key -out server.csr")
-        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in server.csr -out server.crt")
-        If rootca_pw.Length > 0 Then
-            openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in server.crt -out server.pfx".Replace("{0}", server_pw))
-            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in server.pfx -out server.pem".Replace("{0}", server_pw))
-        End If
-        Console.WriteLine()
-
-        Console.WriteLine("##################################################")
-        Console.WriteLine("Client Certificate")
-        Console.WriteLine("##################################################")
-
-        openssl("genrsa -passout pass:""{0}"" -out client-secret.key {1}".Replace("{0}", client_pw).Replace("{1}", keysize_var))
-        openssl("rsa -passin pass:""{0}"" -in client-secret.key -out client.key".Replace("{0}", client_pw))
-        openssl("req -new -config generate-certs-certs.conf -key client.key -out client.csr")
-        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in client.csr -out client.crt")
-        If rootca_pw.Length > 0 Then
-            openssl("pkcs12 -export -passout pass:""{0}"" -inkey client.key -in client.crt -out client.pfx".Replace("{0}", client_pw))
-            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in client.pfx -out client.pem".Replace("{0}", client_pw))
-        End If
-        Console.WriteLine()
-
-        Console.WriteLine("##################################################")
+        GenerateSection("RESULTS")
         If rootca_pw.Length = 0 Then
             Console.WriteLine("WARNING: Root CA password not specified, PFX and PEM files NOT created")
         End If
-        Console.WriteLine("Done!")
+        Console.WriteLine("Certificates have been generated!")
         Console.WriteLine()
         Console.WriteLine("Don't forget the passwords you used for the certificates:")
         Console.WriteLine("Root CA Cert Password = " & rootca_pw)
-        Console.WriteLine("Server Cert Password  = " & server_pw)
-        Console.WriteLine("Client Cert Password  = " & client_pw)
+        If oneortwo_var = "1" Then
+            Console.WriteLine("Certificate Password  = " & certificate_pw)
+        ElseIf oneortwo_var = "2" Then
+            Console.WriteLine("Server Cert Password  = " & server_pw)
+            Console.WriteLine("Client Cert Password  = " & client_pw)
+        End If
         Console.WriteLine()
         Console.WriteLine("Certificates stored in:")
-        Console.WriteLine(destdir)
+        Console.WriteLine("    " & destdir)
         Console.WriteLine("##################################################")
         Console.WriteLine()
 
         DeleteTempCertFiles()
 
         Console.ReadLine()
-
         End
     End Sub
 
@@ -328,25 +328,22 @@ san_retry:
             Console.WriteLine("Error launching openssl, are you sure it's set up correctly and accessible from the command line?")
         End Try
     End Sub
-    ''' <summary>
-    ''' Deletes all generated certificate files
-    ''' </summary>
-    Private Sub DeleteCertFiles()
-        Dim certfiles As String() = {
-            "client.crt", "client.pem", "client.pfx", "client.csr", "client.key", "client-secret.key",
-            "server.crt", "server.pem", "server.pfx", "server.key", "server-secret.key", "server.csr",
-            "ca.key", "ca.pem", "ca.pfx", "ca-secret.key", "ca.crt"
-        }
 
-        For Each cf As String In certfiles
-            If File.Exists(destdir & "\" & cf) Then
+    Sub ClearOutputFolder()
+        Try
+            Dim f As New DirectoryInfo(destdir)
+            Dim fiArr As FileInfo() = f.GetFiles()
+            Dim fri As FileInfo
+            For Each fri In fiArr
                 Try
-                    File.Delete(destdir & "\" & cf)
+                    fri.Delete()
                 Catch ex As Exception
 
                 End Try
-            End If
-        Next
+            Next
+        Catch ex As Exception
+
+        End Try
     End Sub
 
     ''' <summary>
@@ -354,21 +351,33 @@ san_retry:
     ''' </summary>
     Private Sub DeleteTempCertFiles()
         Dim certfiles As String() = {
-            "00.pem", "01.pem", "02.pem", "03.pem",
+            "00.pem", "01.pem", "02.pem", "03.pem", "04.pem", "05.pem",
             "generate-certs-db", "generate-certs-db.attr", "generate-certs-db.attr.old", "generate-certs-db.old",
             "generate-certs-serial", "generate-certs-serial.old",
             "generate-certs-ca.conf", "generate-certs-certs.conf", "generate-certs.conf"
             }
 
-        For Each cf As String In certfiles
-            If File.Exists(destdir & "\" & cf) Then
+        DeleteIfExists(certfiles)
+    End Sub
+
+    Sub DeleteIfExists(path As String())
+        For Each p As String In path
+            If File.Exists(destdir & "\" & p) Then
                 Try
-                    File.Delete(destdir & "\" & cf)
+                    File.Delete(destdir & "\" & p)
                 Catch ex As Exception
 
                 End Try
             End If
         Next
+    End Sub
+
+    Sub GenerateSection(title As String)
+        Console.WriteLine()
+        Console.WriteLine("##################################################")
+        Console.WriteLine(title)
+        Console.WriteLine("##################################################")
+        Console.WriteLine()
     End Sub
 
     Function GetOS() As String
@@ -384,6 +393,41 @@ san_retry:
 
         Return OS
     End Function
+
+    ''' <summary>
+    ''' Generates individual root CA certificate
+    ''' </summary>
+    ''' <param name="certname"></param>
+    ''' <param name="pw"></param>
+    ''' <param name="keysize"></param>
+    Sub GenerateRootCACertificate(certname As String, pw As String, keysize As String)
+        openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
+        openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+        openssl("req -new -x509 -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
+        If pw.Length > 0 Then
+            openssl("pkcs12 -export -passout pass:""{0}"" -inkey {CERTNAME}.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+        End If
+        Console.WriteLine()
+    End Sub
+
+    ''' <summary>
+    ''' Generates individual certificate
+    ''' </summary>
+    ''' <param name="certname"></param>
+    ''' <param name="pw"></param>
+    ''' <param name="keysize"></param>
+    Sub GenerateCertificate(certname As String, pw As String, keysize As String)
+        openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
+        openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+        openssl("req -new -config generate-certs-certs.conf -key {CERTNAME}.key -out {CERTNAME}.csr".Replace("{CERTNAME}", certname))
+        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in {CERTNAME}.csr -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
+        If pw.Length > 0 Then
+            openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+        End If
+        Console.WriteLine()
+    End Sub
 
     Function GetOpenSslCfg() As String
         Return "[ca]
