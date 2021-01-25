@@ -35,13 +35,15 @@ retry_openssl_test:
         Catch ex As Exception
             If GetOS() <> "Windows" Then
                 'Non-Windows
-                Console.WriteLine("Could not detect OpenSSL. Please install it first and then Generate-Certs.")
+                Console.WriteLine("Could not detect OpenSSL. Please install it first and then run Generate-Certs.")
                 Console.WriteLine()
                 Console.WriteLine("Try this command:")
-                Console.WriteLine("  apt update && apt install openssl -y")
+                Console.WriteLine("    apt update && apt install openssl -y")
+                Console.WriteLine("or try:")
+                Console.WriteLine("    yum install openssl")
                 Console.WriteLine()
                 Console.WriteLine("If that does not work, try the instructions here:")
-                Console.WriteLine("  http://bit.ly/install-openssl")
+                Console.WriteLine("  http://bit.ly/linux-openssl")
                 Console.ReadLine()
                 End
             End If
@@ -166,7 +168,7 @@ oneortwo_retry:
         End If
 
         Console.WriteLine()
-        Console.WriteLine("Please create passwords for your certs, or just press enter to not set a password")
+        Console.WriteLine("Please create passwords for your certs or press enter to not set a password")
         Console.WriteLine("Root CA Cert password is REQUIRED if you want PFX and PEM files created (for all files), otherwise optional")
         Console.WriteLine()
 
