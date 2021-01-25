@@ -251,8 +251,8 @@ san_retry:
         'Write temp files
         File.WriteAllText(destdir & "/generate-certs-serial", "00" & vbCrLf)
         File.WriteAllText(destdir & "/generate-certs-db", "")
-        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", "basicConstraints = CA:true"))
-        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CA}", ""))
+        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "Root Certificate Authority"))
+        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "SSL Certificate"))
 
         'Begin writing cert data
 
@@ -403,7 +403,7 @@ san_retry:
     Sub GenerateRootCACertificate(certname As String, pw As String, keysize As String)
         openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
         openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-        openssl("req -new -x509 -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
+        openssl("req -new -days 3650 -x509 -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey {CERTNAME}.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
@@ -458,16 +458,25 @@ emailAddress = optional
 [req]
 prompt = no
 distinguished_name = req_distinguished_name
-req_extensions = v3_ca
+req_extensions = v3_req
 x509_extensions	= v3_ca
+subjectKeyIdentifier = hash
 
 [req_distinguished_name]
+OU = {OU}
 O = Self-Signed Certificate
 {CN}
 
 [v3_ca]
 subjectAltName = @alt_names
-{CA}
+basicConstraints = critical,CA:true
+keyUsage = cRLSign, keyCertSign
+
+[v3_req]
+subjectAltName = @alt_names
+basicConstraints = CA:false
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
 
 [alt_names]
 {ALT}
