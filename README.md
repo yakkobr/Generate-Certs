@@ -1,4 +1,4 @@
-# Generate Client & Server SSL Certificates
+# Generate Self-Signed SSL Certificates
 
 This is a Windows/Linux app (x64) that generates a set of self-signed SSL certificates
 
@@ -25,7 +25,7 @@ bash dotnet.sh -c 5.0
 
 Run Generate-Certs:
 ```
-wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.15/Generate-Certs
+wget https://github.com/asheroto/Generate-Certs/releases/download/0.0.16/Generate-Certs
 chmod +x Generate-Certs
 ./Generate-Certs
 ```
