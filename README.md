@@ -13,7 +13,7 @@ This is a Windows/Linux app (x64) that generates a set of self-signed SSL certif
 - Most people use **2048 as the key size** as it is still considered secure.
 - The **SUBJECT** name is usually the main hostname that you're connecting to.
 - The **SUBJECT ALTERNATIVE NAME** is usually an alternate name, or an IP address.
-	- **Generate-Certs** supports the detection of IP addresses.
+	- **Generate-Certs** supports the detection of IP addresses in the SAN field.
 - Certificates expire **3650 days** after day of certificate generation.
 - Files are created in the **SSL_Certs_Out** subdirectory from whatever directory you're in when running **Generate-Certs**.  It will tell you the path once you start the program.
 
@@ -45,11 +45,15 @@ chmod +x Generate-Certs
 ## Info/Warning
 ![Generate-Certs Initial Screen](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/1.png)
 
-## Configuration (Cert Passwords + Key Size)
+## Configuration
 ![Generate-Certs Configuration](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/2.png)
 
 ## Final Result
 ![Final Result](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/3.png)
 
-## Created Files
-![Generate-Certs Result](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/4.png)
+#### Files Created
+If you chose to create 1 certificate:
+![Generate-Certs Result - 1 cert](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/4.png)
+
+If you chose to create 2 certificates:
+![Generate-Certs Result - 2 certs](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/5.png)
