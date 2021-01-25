@@ -4,12 +4,13 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Generate_Certs</RootNamespace>
     <TargetFramework>net5.0</TargetFramework>
-    <Version>0.0.21</Version>
+    <Version>0.0.21.1</Version>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
     <RepositoryUrl></RepositoryUrl>
     <Description>Generates self-signed SSL certificates</Description>
     <NeutralLanguage>en-US</NeutralLanguage>
     <PackageProjectUrl>https://github.com/asheroto/Generate-Certs</PackageProjectUrl>
+    <AssemblyVersion>0.0.21.1</AssemblyVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
