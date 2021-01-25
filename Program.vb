@@ -150,8 +150,7 @@ retry_specifypath:
         Console.WriteLine("############### CONFIGURATION ###################")
         Console.WriteLine("Please create passwords for your certs, or just press enter to not set a password")
         Console.WriteLine()
-        Console.WriteLine("Root CA Cert password is REQUIRED if you want PFX and PEM files for the root CA cert created")
-        Console.WriteLine("Server/Client Certs password is OPTIONAL")
+        Console.WriteLine("Root CA Cert password is REQUIRED if you want PFX and PEM files created (for all files), otherwise optional")
         Console.WriteLine("##################################################")
 
         Dim rootca_pw As String
@@ -209,8 +208,11 @@ keysize_retry:
         openssl("rsa -passin pass:""{0}"" -in server-secret.key -out server.key".Replace("{0}", server_pw))
         openssl("req -new -key server.key -out server.csr -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
         openssl("x509 -req -days 3650 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt".Replace("{0}", server_pw))
-        openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in server.crt -out server.pfx".Replace("{0}", server_pw))
-        openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in server.pfx -out server.pem".Replace("{0}", server_pw))
+        If rootca_pw.Length > 0 Then
+            openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in server.crt -out server.pfx".Replace("{0}", server_pw))
+            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in server.pfx -out server.pem".Replace("{0}", server_pw))
+        End If
+        Console.WriteLine()
 
         Console.WriteLine("##################################################")
         Console.WriteLine("Client Certificate")
@@ -220,13 +222,15 @@ keysize_retry:
         openssl("rsa -passin pass:""{0}"" -in client-secret.key -out client.key".Replace("{0}", client_pw))
         openssl("req -new -key client.key -out client.csr -subj ""/CN=localhost"" -addext ""subjectAltName=DNS:localhost,IP:127.0.0.1""")
         openssl("x509 -req -days 3650 -in client.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out client.crt".Replace("{0}", client_pw))
-        openssl("pkcs12 -export -passout pass:""{0}"" -inkey client.key -in client.crt -out client.pfx".Replace("{0}", client_pw))
-        openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in client.pfx -out client.pem".Replace("{0}", client_pw))
-
+        If rootca_pw.Length > 0 Then
+            openssl("pkcs12 -export -passout pass:""{0}"" -inkey client.key -in client.crt -out client.pfx".Replace("{0}", client_pw))
+            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in client.pfx -out client.pem".Replace("{0}", client_pw))
+        End If
         Console.WriteLine()
+
         Console.WriteLine("##################################################")
         If rootca_pw.Length = 0 Then
-            Console.WriteLine("WARNING: Root CA password not specified, ca.pfx and ca.pem files NOT created")
+            Console.WriteLine("WARNING: Root CA password not specified, PFX and PEM files NOT created")
         End If
         Console.WriteLine("Done!")
         Console.WriteLine()
