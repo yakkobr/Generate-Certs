@@ -18,7 +18,7 @@ This is a Windows/Linux app (x64) that generates a self-signed SSL certificates,
 
 ### Notes
 
-- [ECSDA certificates](https://blog.cloudflare.com/ecdsa-the-digital-signature-algorithm-of-a-better-internet/) by design (more secure than RSA) using the secp256p1 curve
+- [ECSDA certificates](https://blog.cloudflare.com/ecdsa-the-digital-signature-algorithm-of-a-better-internet/) by design (more secure than RSA) using the **secp256p1** curve
 - **If you want PFX and PEM files created** (for all files), you MUST set a Root CA Cert password.
 - The **SUBJECT** name is usually the main hostname that you're connecting to.
 - The **SUBJECT ALTERNATIVE NAME** is usually an alternate name, or an IP address.
