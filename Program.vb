@@ -17,6 +17,11 @@ Module Program
     Const ClientCertName As String = "client"
     Const CertValidityDays As String = "3650"
 
+    Const GenerateCertsSerial As String = "generate-certs-serial"
+    Const GenerateCertsDb As String = "generate-certs-db"
+    Const GenerateCertsCaConf As String = "generate-certs-ca.conf"
+    Const GenerateCertsCertsConf As String = "generate-certs-certs.conf"
+
     Sub Main()
         'Set title
         Console.Title = Assembly.GetExecutingAssembly.GetName.Name
@@ -154,7 +159,7 @@ retry_specifypath:
 
         'Information
         Console.WriteLine("################### WARNING ######################")
-        Console.WriteLine("Generate-Certs generates self-signed SSL certificates")
+        Console.WriteLine("Generate-Certs generates self-signed SSL/TLS certificates")
         Console.WriteLine()
         Console.WriteLine("The following folder will be used to store the certificates:")
         Console.WriteLine("    " & destdir)
@@ -225,6 +230,10 @@ subject_retry:
         Dim subj_var As String = Nothing
         Dim subj_line As String = Console.ReadLine
         If subj_line.Length > 0 Then
+            If subj_line.Contains(" ") Then
+                Console.WriteLine("SUBJECT cannot contain a space!")
+                GoTo subject_retry
+            End If
             subj_var = subj_line
         Else
             subj_var = "localhost"
@@ -242,6 +251,10 @@ san_retry:
         Dim san_var As String = Nothing
         Dim san_line As String = Console.ReadLine
         If san_line.Length > 0 Then
+            If san_line.Contains(" ") Then
+                Console.WriteLine("SAN cannot contain a space!")
+                GoTo san_retry
+            End If
             Try
                 Dim parsedIP As String = IPAddress.Parse(san_line).ToString
                 If parsedIP IsNot Nothing Then
@@ -257,16 +270,16 @@ san_retry:
         san = "DNS.1 = " & subj_var & vbCrLf & san_var
 
         'Write temp files
-        File.WriteAllText(destdir & "/generate-certs-serial", "00" & vbCrLf)
-        File.WriteAllText(destdir & "/generate-certs-db", "")
-        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{SAN}", "").Replace("{CN}", "CN = Generate-Certs Root CA").Replace("{ALT}", "").Replace("{CACERTNAME}", CACertName).Replace("{BC}", "critical,CA:true").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment, cRLSign, keyCertSign").Replace("{CERTVALIDITYDAYS}", CertValidityDays))
-        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{SAN}", "subjectAltName = @alt_names").Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CACERTNAME}", CACertName).Replace("{BC}", "CA:false").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment").Replace("{CERTVALIDITYDAYS}", CertValidityDays))
+        File.WriteAllText(destdir & slash & GenerateCertsSerial, "00" & vbCrLf)
+        File.WriteAllText(destdir & slash & GenerateCertsDb, "")
+        File.WriteAllText(destdir & slash & GenerateCertsCaConf, GetOpenSslCfg("CN = Generate-Certs Root CA", "", "", CACertName, "critical,CA:true", "nonRepudiation, digitalSignature, keyEncipherment, cRLSign, keyCertSign", CertValidityDays))
+        File.WriteAllText(destdir & slash & GenerateCertsCertsConf, GetOpenSslCfg(cn, "subjectAltName = @alt_names", san, CACertName, "CA:false", "nonRepudiation, digitalSignature, keyEncipherment", CertValidityDays))
 
         'Begin writing cert data
 
         'Root CA Certificate
         GenerateSection("Root CA Certificate")
-        GenerateRootCACertificate(CACertName, rootca_pw)
+        GenerateCertificate(CACertName, rootca_pw, rootca_pw, True)
 
         If oneortwo_var = "1" Then
             'One certificate
@@ -305,6 +318,7 @@ san_retry:
         Console.WriteLine("    " & destdir)
         Console.WriteLine("##################################################")
         Console.WriteLine()
+
         Console.WriteLine()
 
         DeleteTempCertFiles()
@@ -341,6 +355,9 @@ san_retry:
         End Try
     End Sub
 
+    ''' <summary>
+    ''' Clears files in the output folder
+    ''' </summary>
     Sub ClearOutputFolder()
         Try
             Dim f As New DirectoryInfo(destdir)
@@ -362,14 +379,18 @@ san_retry:
     Private Sub DeleteTempCertFiles()
         Dim certfiles As String() = {
             "00.pem", "01.pem", "02.pem", "03.pem", "04.pem", "05.pem",
-            "generate-certs-db", "generate-certs-db.attr", "generate-certs-db.attr.old", "generate-certs-db.old",
-            "generate-certs-serial", "generate-certs-serial.old", "generate-certs-serial.new", "generate-certs-db.new", "generate-certs-db.attr.new",
-            "generate-certs-ca.conf", "generate-certs-certs.conf"
-            }
+            GenerateCertsDb, GenerateCertsDb & ".attr", GenerateCertsDb & ".attr.old", GenerateCertsDb & ".old", GenerateCertsDb & ".new", GenerateCertsDb & ".attr.new",
+            GenerateCertsSerial, GenerateCertsSerial & ".old", GenerateCertsSerial & ".new",
+            GenerateCertsCaConf, GenerateCertsCertsConf
+        }
 
         DeleteIfExists(certfiles)
     End Sub
 
+    ''' <summary>
+    ''' Deletes if exists in array
+    ''' </summary>
+    ''' <param name="path"></param>
     Sub DeleteIfExists(path As String())
         For Each p As String In path
             If File.Exists(destdir & slash & p) Then
@@ -389,6 +410,10 @@ san_retry:
         Console.WriteLine()
     End Sub
 
+    ''' <summary>
+    ''' Returns OS
+    ''' </summary>
+    ''' <returns></returns>
     Function GetOS() As OSPlatform
         Dim OS As OSPlatform
 
@@ -404,32 +429,25 @@ san_retry:
     End Function
 
     ''' <summary>
-    ''' Generates individual root CA certificate
+    ''' Generates certificate
     ''' </summary>
-    ''' <param name="certname"></param>
-    ''' <param name="pw"></param>
-    Sub GenerateRootCACertificate(certname As String, pw As String)
-        openssl("ecparam -genkey -name prime256v1 -out ""{CERTNAME}.key""".Replace("{CERTNAME}", certname))
-        openssl("req -config generate-certs-ca.conf -new -SHA256 -nodes -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
-        openssl("ca -config generate-certs-ca.conf -batch -selfsign -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
-
-        If pw.Length > 0 Then
-            openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+    ''' <param name="certname">Certificate name</param>
+    ''' <param name="pw">Password of certificate</param>
+    ''' <param name="rootcapw">Set to Root CA Cert password</param>
+    ''' <param name="isRootCaCert">Set to True if generating a Root CA Cert</param>
+    Sub GenerateCertificate(certname As String, pw As String, rootcapw As String, Optional isRootCaCert As Boolean = False)
+        Dim SELFSIGN As String = Nothing
+        Dim OpenSSLConf As String = Nothing
+        If isRootCaCert Then
+            SELFSIGN = "-selfsign"
+            OpenSSLConf = GenerateCertsCaConf
+        Else
+            OpenSSLConf = GenerateCertsCertsConf
         End If
 
-        Console.WriteLine()
-    End Sub
-
-    ''' <summary>
-    ''' Generates individual certificate
-    ''' </summary>
-    ''' <param name="certname"></param>
-    ''' <param name="pw"></param>
-    ''' <param name="rootcapw"></param>
-    Sub GenerateCertificate(certname As String, pw As String, rootcapw As String)
         openssl("ecparam -genkey -name prime256v1 -out ""{CERTNAME}.key""".Replace("{CERTNAME}", certname))
-        openssl("req -config generate-certs-certs.conf -new -SHA256 -key ""{CERTNAME}.key"" -nodes -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
-        openssl("ca -config generate-certs-certs.conf -batch -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
+        openssl("req -config {OPENSSLCONF} -new -SHA256 -key ""{CERTNAME}.key"" -nodes -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname).Replace("{OPENSSLCONF}", OpenSSLConf))
+        openssl("ca -config {OPENSSLCONF} -batch {SELFSIGN} -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays).Replace("{SELFSIGN}", SELFSIGN).Replace("{OPENSSLCONF}", OpenSSLConf))
 
         If rootcapw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
@@ -438,15 +456,15 @@ san_retry:
         Console.WriteLine()
     End Sub
 
-    Function GetOpenSslCfg() As String
-        Return "[ca]
+    Function GetOpenSslCfg(vCN As String, vSAN As String, vALT As String, vCACERTNAME As String, vBC As String, vKU As String, vCERTVALIDITYDAYS As String)
+        Dim data As String = "[ca]
 default_ca = CA_default
 
 [CA_default]
 dir = .
-database = $dir/generate-certs-db
+database = $dir/{GENERATECERTSDB}
 new_certs_dir = $dir/
-serial = $dir/generate-certs-serial
+serial = $dir/{GENERATECERTSSERIAL}
 private_key = ./{CACERTNAME}.key
 certificate = ./{CACERTNAME}.crt
 default_days = {CERTVALIDITYDAYS}
@@ -484,5 +502,18 @@ subjectKeyIdentifier = hash
 [alt_names]
 {ALT}
 "
+
+        data = data.Replace("{GENERATECERTSDB}", GenerateCertsDb)
+        data = data.Replace("{GENERATECERTSSERIAL}", GenerateCertsSerial)
+        data = data.Replace("{CN}", vCN)
+        data = data.Replace("{SAN}", vSAN)
+        data = data.Replace("{ALT}", vALT)
+        data = data.Replace("{CACERTNAME}", vCACERTNAME)
+        data = data.Replace("{BC}", vBC)
+        data = data.Replace("{KU}", vKU)
+        data = data.Replace("{CERTVALIDITYDAYS}", vCERTVALIDITYDAYS)
+
+        Return data
     End Function
+
 End Module
