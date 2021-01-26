@@ -16,16 +16,26 @@ Module Program
     Const ServerCertName As String = "server"
     Const ClientCertName As String = "client"
 
+    Dim StartDate As String
+    Dim EndDate As String
+
     Sub Main()
+        'Set title
         Console.Title = Assembly.GetExecutingAssembly.GetName.Name
 
+        'Set slash depending on OS
         If GetOS() = OSPlatform.Windows Then
             slash = "\"
         Else
             slash = "/"
         End If
 
+        'Set destination directory
         destdir = Environment.CurrentDirectory & slash & OutputDirectoryName
+
+        'Set starting and ending date for validity
+        StartDate = DateTime.Now.ToString("yyyyMMdd000000") & "Z"
+        EndDate = DateTime.Now.AddYears(10).ToString("yyyyMMdd000000") & "Z"
 
 retry_openssl_test:
         Try
@@ -275,8 +285,8 @@ san_retry:
         'Write temp files
         File.WriteAllText(destdir & "/generate-certs-serial", "00" & vbCrLf)
         File.WriteAllText(destdir & "/generate-certs-db", "")
-        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "Root Certificate Authority").Replace("{CACERTNAME}", CACertName))
-        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "SSL Certificate").Replace("{CACERTNAME}", CACertName))
+        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{SAN}", "").Replace("{CN}", "CN = Generate-Certs Root CA").Replace("{ALT}", "").Replace("{CACERTNAME}", CACertName).Replace("{BC}", "critical,CA:true").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment, cRLSign, keyCertSign"))
+        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{SAN}", "subjectAltName = @alt_names").Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CACERTNAME}", CACertName).Replace("{BC}", "CA:false").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment"))
 
         'Begin writing cert data
 
@@ -287,18 +297,18 @@ san_retry:
         If oneortwo_var = "1" Then
             'One certificate
             GenerateSection("Certificate")
-            GenerateCertificate(CertificateCertName, certificate_pw, keysize_var)
+            GenerateCertificate(CertificateCertName, certificate_pw, keysize_var, rootca_pw)
 
         ElseIf oneortwo_var = "2" Then
             'Two certificates
 
             'Server certificate
             GenerateSection("Server Certificate")
-            GenerateCertificate(ServerCertName, server_pw, keysize_var)
+            GenerateCertificate(ServerCertName, server_pw, keysize_var, rootca_pw)
 
             'Client certificate
             GenerateSection("Client Certificate")
-            GenerateCertificate(ClientCertName, client_pw, keysize_var)
+            GenerateCertificate(ClientCertName, client_pw, keysize_var, rootca_pw)
         End If
 
         GenerateSection("RESULTS")
@@ -344,6 +354,8 @@ san_retry:
             o.StartInfo.Arguments = args
             If Directory.Exists(destdir) = False Then Directory.CreateDirectory(destdir)
             o.StartInfo.WorkingDirectory = destdir
+            'o.StartInfo.RedirectStandardOutput = True
+            'o.StartInfo.RedirectStandardError = True
             o.Start()
 
             Do While o.HasExited = False
@@ -423,13 +435,16 @@ san_retry:
     ''' <param name="pw"></param>
     ''' <param name="keysize"></param>
     Sub GenerateRootCACertificate(certname As String, pw As String, keysize As String)
-        openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
-        openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-        openssl("req -new -days 3650 -x509 -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
+        openssl("genrsa -passout pass:""{0}"" -out ""{CERTNAME}-secret.key"" {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
+        openssl("rsa -passin pass:""{0}"" -in ""{CERTNAME}-secret.key"" -out ""{CERTNAME}.key""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+        openssl("req -new -config generate-certs-ca.conf -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
+        openssl("ca -config generate-certs-ca.conf -batch -selfsign -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
+
         If pw.Length > 0 Then
-            openssl("pkcs12 -export -passout pass:""{0}"" -inkey {CERTNAME}.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+            openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+            'openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
+
         Console.WriteLine()
     End Sub
 
@@ -439,15 +454,17 @@ san_retry:
     ''' <param name="certname"></param>
     ''' <param name="pw"></param>
     ''' <param name="keysize"></param>
-    Sub GenerateCertificate(certname As String, pw As String, keysize As String)
-        openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
-        openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-        openssl("req -new -config generate-certs-certs.conf -key {CERTNAME}.key -out {CERTNAME}.csr".Replace("{CERTNAME}", certname))
-        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in {CERTNAME}.csr -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
-        If pw.Length > 0 Then
-            openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+    Sub GenerateCertificate(certname As String, pw As String, keysize As String, rootcapw As String)
+        openssl("genrsa -passout pass:""{0}"" -out ""{CERTNAME}-secret.key"" {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
+        openssl("rsa -passin pass:""{0}"" -in ""{CERTNAME}-secret.key"" -out ""{CERTNAME}.key""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+        openssl("req -new -config generate-certs-certs.conf -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
+        openssl("ca -config generate-certs-certs.conf -batch -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
+
+        If rootcapw.Length > 0 Then
+            openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+            'openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
+
         Console.WriteLine()
     End Sub
 
@@ -480,25 +497,19 @@ emailAddress = optional
 [req]
 prompt = no
 distinguished_name = req_distinguished_name
-req_extensions = v3_req
-x509_extensions	= v3_ca
-subjectKeyIdentifier = hash
+req_extensions = v3_data
+x509_extensions	= v3_data
 
 [req_distinguished_name]
-OU = {OU}
-O = Self-Signed Certificate
+OU = Created by Generate-Certs
+O = Created by Generate-Certs
 {CN}
 
-[v3_ca]
-subjectAltName = @alt_names
-basicConstraints = critical,CA:true
-keyUsage = cRLSign, keyCertSign
-
-[v3_req]
-subjectAltName = @alt_names
-basicConstraints = CA:false
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-
+[v3_data]
+{SAN}
+basicConstraints = {BC}
+keyUsage = {KU}
+subjectKeyIdentifier = hash
 
 [alt_names]
 {ALT}
