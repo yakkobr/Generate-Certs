@@ -432,7 +432,7 @@ san_retry:
     Sub GenerateRootCACertificate(certname As String, pw As String, keysize As String)
         openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
         openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-        openssl("req -new -config generate-certs-ca.conf -key {CERTNAME}-secret.key -out {CERTNAME}.csr".Replace("{CERTNAME}", certname))
+        openssl("req -new -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
         openssl("ca -config generate-certs-ca.conf -in {CERTNAME}.csr -keyfile {CERTNAME}-secret.key -out {CERTNAME}.crt -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey {CERTNAME}.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
