@@ -1,7 +1,7 @@
 
-# Generate Self-Signed SSL Certificates
+# Generate Self-Signed SSL/TLS Certificates
 
-This is a Windows/Linux app (x64) that generates a self-signed SSL certificates, including the Root CA cert.
+This is a Windows/Linux app (x64) that generates self-signed SSL/TLS certificates, including the Root CA cert.
 
 ### Files Created
 
