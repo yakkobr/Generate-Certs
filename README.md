@@ -1,7 +1,9 @@
 
+
 # Generate Self-Signed SSL/TLS Certificates
 
-This is a Windows/Linux app (x64) that generates self-signed SSL/TLS certificates, including the Root CA cert.
+### What is this?
+This is a Windows/Linux/Mac app that generates self-signed SSL/TLS certificates, including the Root CA cert.
 
 ### Files Created
 
@@ -30,24 +32,61 @@ This is a Windows/Linux app (x64) that generates self-signed SSL/TLS certificate
 
 ### Windows
 
+Not sure which architecture? Try the x86 version as it should work with most Windows machines.
+
+**win-x64:**
 [Download and install .NET 5 for Windows x64](https://dotnet.microsoft.com/download/dotnet/current/runtime)
 
-[Download Generate-Certs.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs.exe>) page, then open Generate-Certs.exe or run it from the command line.
+[Download Generate-Certs_win-x64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x64.exe>), then run `Generate-Certs_win-x64.exe`
+
+**win-x86:**
+[Download and install .NET 5 for Windows x86](https://dotnet.microsoft.com/download/dotnet/current/runtime)
+
+[Download Generate-Certs_win-x86.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x86.exe>), then run `Generate-Certs_win-x86.exe`
+
+**win-arm64:**
+[Download and install .NET 5 for Windows arm64](https://dotnet.microsoft.com/download/dotnet/5.0) (Runtime column, under ".NET Runtime 5.x.x", arm64  Installer)
+
+[Download Generate-Certs_win-arm64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-arm64.exe>), then run `Generate-Certs_win-arm64.exe`
 
 ### Linux
 
-Install .NET 5 for Linux x64:
+**Install .NET 5 for Linux if it's not already installed:**
 ```
 wget dot.net/v1/dotnet-install.sh -O dotnet.sh
 bash dotnet.sh -c 5.0
 ```
 
-Run Generate-Certs:
+**linux-64:**
 ```
-wget https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs
-chmod +x Generate-Certs
-./Generate-Certs
+wget https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_linux-x64
+chmod +x Generate-Certs_linux-x64
+./Generate-Certs_linux-x64
 ```
+
+**linux-arm:**
+```
+wget https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_linux-arm
+chmod +x Generate-Certs_linux-arm
+./Generate-Certs_linux-arm
+```
+
+**linux-arm64:**
+```
+wget https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_linux-arm64
+chmod +x Generate-Certs_linux-arm64
+./Generate-Certs_linux-arm64
+```
+
+### Mac
+
+**osx-x64:**
+```
+wget https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_osx-x64
+chmod +x Generate-Certs_osx-x64
+./Generate-Certs_osx-x64
+```
+
 
 # Screenshots
 
