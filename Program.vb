@@ -20,14 +20,17 @@ Module Program
     Dim EndDate As String
 
     Sub Main()
+        'Set title
         Console.Title = Assembly.GetExecutingAssembly.GetName.Name
 
+        'Set slash depending on OS
         If GetOS() = OSPlatform.Windows Then
             slash = "\"
         Else
             slash = "/"
         End If
 
+        'Set destination directory
         destdir = Environment.CurrentDirectory & slash & OutputDirectoryName
 
         'Set starting and ending date for validity
@@ -294,18 +297,18 @@ san_retry:
         If oneortwo_var = "1" Then
             'One certificate
             GenerateSection("Certificate")
-            GenerateCertificate(CertificateCertName, certificate_pw, keysize_var)
+            GenerateCertificate(CertificateCertName, certificate_pw, keysize_var, rootca_pw)
 
         ElseIf oneortwo_var = "2" Then
             'Two certificates
 
             'Server certificate
             GenerateSection("Server Certificate")
-            GenerateCertificate(ServerCertName, server_pw, keysize_var)
+            GenerateCertificate(ServerCertName, server_pw, keysize_var, rootca_pw)
 
             'Client certificate
             GenerateSection("Client Certificate")
-            GenerateCertificate(ClientCertName, client_pw, keysize_var)
+            GenerateCertificate(ClientCertName, client_pw, keysize_var, rootca_pw)
         End If
 
         GenerateSection("RESULTS")
@@ -351,6 +354,8 @@ san_retry:
             o.StartInfo.Arguments = args
             If Directory.Exists(destdir) = False Then Directory.CreateDirectory(destdir)
             o.StartInfo.WorkingDirectory = destdir
+            'o.StartInfo.RedirectStandardOutput = True
+            'o.StartInfo.RedirectStandardError = True
             o.Start()
 
             Do While o.HasExited = False
@@ -437,7 +442,7 @@ san_retry:
 
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+            'openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
 
         Console.WriteLine()
@@ -449,15 +454,15 @@ san_retry:
     ''' <param name="certname"></param>
     ''' <param name="pw"></param>
     ''' <param name="keysize"></param>
-    Sub GenerateCertificate(certname As String, pw As String, keysize As String)
+    Sub GenerateCertificate(certname As String, pw As String, keysize As String, rootcapw As String)
         openssl("genrsa -passout pass:""{0}"" -out ""{CERTNAME}-secret.key"" {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
         openssl("rsa -passin pass:""{0}"" -in ""{CERTNAME}-secret.key"" -out ""{CERTNAME}.key""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         openssl("req -new -config generate-certs-certs.conf -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
         openssl("ca -config generate-certs-certs.conf -batch -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
 
-        If pw.Length > 0 Then
+        If rootcapw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-            openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
+            'openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
 
         Console.WriteLine()
