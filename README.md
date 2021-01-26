@@ -1,5 +1,6 @@
 
 
+
 # Generate Self-Signed SSL/TLS Certificates
 
 ### What is this?
@@ -54,7 +55,7 @@ Not sure which architecture? Try the x86 version as it should work with most Win
 
 ### Linux
 
-**Install .NET 5 for Linux if it's not already installed:**
+**PREREQUISITE - Install .NET 5 for Linux if it's not already installed:**
 ```
 wget dot.net/v1/dotnet-install.sh -O dotnet.sh
 bash dotnet.sh -c 5.0
@@ -82,6 +83,8 @@ chmod +x Generate-Certs_linux-arm64
 ```
 
 ### Mac
+
+**PREREQUISITE** - [Download and install .NET 5 for Mac x64](https://dotnet.microsoft.com/download/dotnet/5.0) (Runtime column, under ".NET Runtime 5.x.x", Mac x64 Installer)
 
 **osx-x64:**
 ```
