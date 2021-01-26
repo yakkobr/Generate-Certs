@@ -32,7 +32,7 @@ This is a Windows/Linux app (x64) that generates self-signed SSL/TLS certificate
 
 [Download and install .NET 5 for Windows x64](https://dotnet.microsoft.com/download/dotnet/current/runtime)
 
-[Download Generate-Certs.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs.exe>) page, then open Generate-Certs.exe or run it from the command line.
+[Download Generate-Certs.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs.exe>), then open Generate-Certs.exe or run it from the command line.
 
 ### Linux
 
