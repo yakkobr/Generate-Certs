@@ -434,10 +434,12 @@ san_retry:
         openssl("rsa -passin pass:""{0}"" -in ""{CERTNAME}-secret.key"" -out ""{CERTNAME}.key""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         openssl("req -new -config generate-certs-ca.conf -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
         openssl("ca -config generate-certs-ca.conf -batch -selfsign -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
+
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
+
         Console.WriteLine()
     End Sub
 
@@ -452,10 +454,12 @@ san_retry:
         openssl("rsa -passin pass:""{0}"" -in ""{CERTNAME}-secret.key"" -out ""{CERTNAME}.key""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         openssl("req -new -config generate-certs-certs.conf -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
         openssl("ca -config generate-certs-certs.conf -batch -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
+
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
+
         Console.WriteLine()
     End Sub
 
