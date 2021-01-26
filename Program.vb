@@ -381,7 +381,7 @@ san_retry:
             "00.pem", "01.pem", "02.pem", "03.pem", "04.pem", "05.pem",
             GenerateCertsDb, GenerateCertsDb & ".attr", GenerateCertsDb & ".attr.old", GenerateCertsDb & ".old", GenerateCertsDb & ".new", GenerateCertsDb & ".attr.new",
             GenerateCertsSerial, GenerateCertsSerial & ".old", GenerateCertsSerial & ".new",
-            GenerateCertsCaConf & ".conf", GenerateCertsCertsConf & ".conf"
+            GenerateCertsCaConf, GenerateCertsCertsConf
         }
 
         DeleteIfExists(certfiles)
@@ -440,11 +440,13 @@ san_retry:
         Dim OpenSSLConf As String = Nothing
         If isRootCaCert Then
             SELFSIGN = "-selfsign"
-            OpenSSLConf = 
+            OpenSSLConf = GenerateCertsCaConf
+        Else
+            OpenSSLConf = GenerateCertsCertsConf
         End If
 
         openssl("ecparam -genkey -name prime256v1 -out ""{CERTNAME}.key""".Replace("{CERTNAME}", certname))
-        openssl("req -config {OPENSSLCONF} -new -SHA256 -key ""{CERTNAME}.key"" -nodes -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname).Replace.("{OPENSSLCONF}", opensslconf))
+        openssl("req -config {OPENSSLCONF} -new -SHA256 -key ""{CERTNAME}.key"" -nodes -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname).Replace("{OPENSSLCONF}", OpenSSLConf))
         openssl("ca -config {OPENSSLCONF} -batch {SELFSIGN} -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays).Replace("{SELFSIGN}", SELFSIGN).Replace("{OPENSSLCONF}", OpenSSLConf))
 
         If rootcapw.Length > 0 Then
