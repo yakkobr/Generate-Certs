@@ -16,6 +16,9 @@ Module Program
     Const ServerCertName As String = "server"
     Const ClientCertName As String = "client"
 
+    Dim StartDate As String
+    Dim EndDate As String
+
     Sub Main()
         Console.Title = Assembly.GetExecutingAssembly.GetName.Name
 
@@ -26,6 +29,10 @@ Module Program
         End If
 
         destdir = Environment.CurrentDirectory & slash & OutputDirectoryName
+
+        'Set starting and ending date for validity
+        StartDate = DateTime.Now.ToString("yyyyMMdd000000") & "Z"
+        EndDate = DateTime.Now.AddYears(10).ToString("yyyyMMdd000000") & "Z"
 
 retry_openssl_test:
         Try
@@ -425,7 +432,8 @@ san_retry:
     Sub GenerateRootCACertificate(certname As String, pw As String, keysize As String)
         openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
         openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-        openssl("req -new -days 3650 -x509 -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
+        openssl("req -new -config generate-certs-ca.conf -key {CERTNAME}-secret.key -out {CERTNAME}.csr".Replace("{CERTNAME}", certname))
+        openssl("ca -config generate-certs-ca.conf -in {CERTNAME}.csr -keyfile {CERTNAME}-secret.key -out {CERTNAME}.crt -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey {CERTNAME}.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
@@ -443,7 +451,7 @@ san_retry:
         openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
         openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         openssl("req -new -config generate-certs-certs.conf -key {CERTNAME}.key -out {CERTNAME}.csr".Replace("{CERTNAME}", certname))
-        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in {CERTNAME}.csr -out {CERTNAME}.crt".Replace("{CERTNAME}", certname))
+        openssl("ca -config generate-certs-certs.conf -create_serial -batch -in {CERTNAME}.csr -out {CERTNAME}.crt -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey server.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
