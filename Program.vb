@@ -282,8 +282,8 @@ san_retry:
         'Write temp files
         File.WriteAllText(destdir & "/generate-certs-serial", "00" & vbCrLf)
         File.WriteAllText(destdir & "/generate-certs-db", "")
-        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{SAN}", "").Replace("{CN}", "CN = Root Certificate Authority").Replace("{ALT}", "").Replace("{OU}", "Root Certificate Authority").Replace("{CACERTNAME}", CACertName).Replace("{BC}", "critical,CA:true").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment, cRLSign, keyCertSign"))
-        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{SAN}", "subjectAltName = @alt_names").Replace("{CN}", cn).Replace("{ALT}", san).Replace("{OU}", "SSL Certificate").Replace("{CACERTNAME}", CACertName).Replace("{BC}", "CA:false").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment"))
+        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{SAN}", "").Replace("{CN}", "CN = Generate-Certs Root CA").Replace("{ALT}", "").Replace("{CACERTNAME}", CACertName).Replace("{BC}", "critical,CA:true").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment, cRLSign, keyCertSign").Replace("{AKI}", "").Replace("{IAN}", ""))
+        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{SAN}", "subjectAltName = @alt_names").Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CACERTNAME}", CACertName).Replace("{BC}", "CA:false").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment").Replace("{AKI}", "authorityKeyIdentifier = keyid,issuer").Replace("{IAN}", "issuerAltName = issuer:copy"))
 
         'Begin writing cert data
 
@@ -433,7 +433,7 @@ san_retry:
         openssl("genrsa -passout pass:""{0}"" -out {CERTNAME}-secret.key {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
         openssl("rsa -passin pass:""{0}"" -in {CERTNAME}-secret.key -out {CERTNAME}.key".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         openssl("req -new -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.csr".Replace("{CERTNAME}", certname))
-        openssl("ca -config generate-certs-ca.conf -key {CERTNAME}.key -out {CERTNAME}.crt -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
+        openssl("ca -config generate-certs-ca.conf -batch -selfsign -in {CERTNAME}.csr -out {CERTNAME}.crt -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey {CERTNAME}.key -in {CERTNAME}.crt -out {CERTNAME}.pfx".Replace("{0}", pw).Replace("{CERTNAME}", certname))
             openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in {CERTNAME}.pfx -out {CERTNAME}.pem".Replace("{0}", pw).Replace("{CERTNAME}", certname))
@@ -490,17 +490,19 @@ prompt = no
 distinguished_name = req_distinguished_name
 req_extensions = v3_data
 x509_extensions	= v3_data
-subjectKeyIdentifier = hash
 
 [req_distinguished_name]
-OU = {OU}
-O = Self-Signed Certificate
+OU = Created by Generate-Certs
+O = Created by Generate-Certs
 {CN}
 
 [v3_data]
 {SAN}
 basicConstraints = {BC}
 keyUsage = {KU}
+subjectKeyIdentifier = hash
+{AKI}
+{IAN}
 
 [alt_names]
 {ALT}
