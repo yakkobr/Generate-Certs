@@ -363,7 +363,7 @@ san_retry:
         Dim certfiles As String() = {
             "00.pem", "01.pem", "02.pem", "03.pem", "04.pem", "05.pem",
             "generate-certs-db", "generate-certs-db.attr", "generate-certs-db.attr.old", "generate-certs-db.old",
-            "generate-certs-serial", "generate-certs-serial.old",
+            "generate-certs-serial", "generate-certs-serial.old", "generate-certs-serial.new", "generate-certs-db.new", "generate-certs-db.attr.new",
             "generate-certs-ca.conf", "generate-certs-certs.conf"
             }
 
@@ -410,7 +410,7 @@ san_retry:
     ''' <param name="pw"></param>
     Sub GenerateRootCACertificate(certname As String, pw As String)
         openssl("ecparam -genkey -name prime256v1 -out ""{CERTNAME}.key""".Replace("{CERTNAME}", certname))
-        openssl("req -x509 -config generate-certs-ca.conf -new -SHA256 -nodes -key ""{CERTNAME}.key"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
+        openssl("req -config generate-certs-ca.conf -new -SHA256 -nodes -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
         openssl("ca -config generate-certs-ca.conf -batch -selfsign -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
 
         If pw.Length > 0 Then
@@ -428,7 +428,7 @@ san_retry:
     ''' <param name="rootcapw"></param>
     Sub GenerateCertificate(certname As String, pw As String, rootcapw As String)
         openssl("ecparam -genkey -name prime256v1 -out ""{CERTNAME}.key""".Replace("{CERTNAME}", certname))
-        openssl("req -config generate-certs-certs.conf -new -SHA256 -key ""{CERTNAME}.key"" -nodes -out ""{CERTNAME}.csr"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
+        openssl("req -config generate-certs-certs.conf -new -SHA256 -key ""{CERTNAME}.key"" -nodes -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
         openssl("ca -config generate-certs-certs.conf -batch -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
 
         If rootcapw.Length > 0 Then
