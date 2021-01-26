@@ -35,16 +35,19 @@ This is a Windows/Linux/Mac app that generates self-signed SSL/TLS certificates,
 Not sure which architecture? Try the x86 version as it should work with most Windows machines.
 
 **win-x64:**
+
 [Download and install .NET 5 for Windows x64](https://dotnet.microsoft.com/download/dotnet/current/runtime)
 
 [Download Generate-Certs_win-x64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x64.exe>), then run `Generate-Certs_win-x64.exe`
 
 **win-x86:**
+
 [Download and install .NET 5 for Windows x86](https://dotnet.microsoft.com/download/dotnet/current/runtime)
 
 [Download Generate-Certs_win-x86.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x86.exe>), then run `Generate-Certs_win-x86.exe`
 
 **win-arm64:**
+
 [Download and install .NET 5 for Windows arm64](https://dotnet.microsoft.com/download/dotnet/5.0) (Runtime column, under ".NET Runtime 5.x.x", arm64  Installer)
 
 [Download Generate-Certs_win-arm64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-arm64.exe>), then run `Generate-Certs_win-arm64.exe`
