@@ -15,9 +15,7 @@ Module Program
     Const CertificateCertName As String = "certificate"
     Const ServerCertName As String = "server"
     Const ClientCertName As String = "client"
-
-    Dim StartDate As String
-    Dim EndDate As String
+    Const CertValidityDays As String = "3650"
 
     Sub Main()
         'Set title
@@ -32,10 +30,6 @@ Module Program
 
         'Set destination directory
         destdir = Environment.CurrentDirectory & slash & OutputDirectoryName
-
-        'Set starting and ending date for validity
-        StartDate = DateTime.Now.ToString("yyyyMMdd000000") & "Z"
-        EndDate = DateTime.Now.AddYears(10).ToString("yyyyMMdd000000") & "Z"
 
 retry_openssl_test:
         Try
@@ -220,26 +214,6 @@ oneortwo_retry:
             client_pw = Console.ReadLine
         End If
 
-keysize_retry:
-        Console.WriteLine()
-        Console.WriteLine("What key size do you want? I recommend either 2048 Or 4096.")
-        Console.WriteLine("The higher the number the more secure. 2048 is still considered very secure and is the most common choice.")
-        Console.WriteLine("Press enter to automatically select (2) 2048")
-        Console.WriteLine("(1) 1024 (2) 2048 (3) 3072 (4) 4096")
-        Dim keysize_var As String = Nothing
-        Dim keysize_line As String = Console.ReadLine()
-        If keysize_line = "1" Then
-            keysize_var = "1024"
-        ElseIf keysize_line = "2" Then
-            keysize_var = "2048"
-        ElseIf keysize_line = "3" Then
-            keysize_var = "3072"
-        ElseIf keysize_line = "4" Then
-            keysize_var = "4096"
-        Else
-            keysize_var = "2048"
-        End If
-
 subject_retry:
         Console.WriteLine()
         Console.WriteLine("What is the SUBJECT of the certificate?")
@@ -285,30 +259,30 @@ san_retry:
         'Write temp files
         File.WriteAllText(destdir & "/generate-certs-serial", "00" & vbCrLf)
         File.WriteAllText(destdir & "/generate-certs-db", "")
-        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{SAN}", "").Replace("{CN}", "CN = Generate-Certs Root CA").Replace("{ALT}", "").Replace("{CACERTNAME}", CACertName).Replace("{BC}", "critical,CA:true").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment, cRLSign, keyCertSign"))
-        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{SAN}", "subjectAltName = @alt_names").Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CACERTNAME}", CACertName).Replace("{BC}", "CA:false").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment"))
+        File.WriteAllText(destdir & "/generate-certs-ca.conf", GetOpenSslCfg().Replace("{SAN}", "").Replace("{CN}", "CN = Generate-Certs Root CA").Replace("{ALT}", "").Replace("{CACERTNAME}", CACertName).Replace("{BC}", "critical,CA:true").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment, cRLSign, keyCertSign").Replace("{CERTVALIDITYDAYS}", CertValidityDays))
+        File.WriteAllText(destdir & "/generate-certs-certs.conf", GetOpenSslCfg().Replace("{SAN}", "subjectAltName = @alt_names").Replace("{CN}", cn).Replace("{ALT}", san).Replace("{CACERTNAME}", CACertName).Replace("{BC}", "CA:false").Replace("{KU}", "nonRepudiation, digitalSignature, keyEncipherment").Replace("{CERTVALIDITYDAYS}", CertValidityDays))
 
         'Begin writing cert data
 
         'Root CA Certificate
         GenerateSection("Root CA Certificate")
-        GenerateRootCACertificate(CACertName, rootca_pw, keysize_var)
+        GenerateRootCACertificate(CACertName, rootca_pw)
 
         If oneortwo_var = "1" Then
             'One certificate
             GenerateSection("Certificate")
-            GenerateCertificate(CertificateCertName, certificate_pw, keysize_var, rootca_pw)
+            GenerateCertificate(CertificateCertName, certificate_pw, rootca_pw)
 
         ElseIf oneortwo_var = "2" Then
             'Two certificates
 
             'Server certificate
             GenerateSection("Server Certificate")
-            GenerateCertificate(ServerCertName, server_pw, keysize_var, rootca_pw)
+            GenerateCertificate(ServerCertName, server_pw, rootca_pw)
 
             'Client certificate
             GenerateSection("Client Certificate")
-            GenerateCertificate(ClientCertName, client_pw, keysize_var, rootca_pw)
+            GenerateCertificate(ClientCertName, client_pw, rootca_pw)
         End If
 
         GenerateSection("RESULTS")
@@ -330,6 +304,7 @@ san_retry:
         Console.WriteLine("Certificates stored in:")
         Console.WriteLine("    " & destdir)
         Console.WriteLine("##################################################")
+        Console.WriteLine()
         Console.WriteLine()
 
         DeleteTempCertFiles()
@@ -389,7 +364,7 @@ san_retry:
             "00.pem", "01.pem", "02.pem", "03.pem", "04.pem", "05.pem",
             "generate-certs-db", "generate-certs-db.attr", "generate-certs-db.attr.old", "generate-certs-db.old",
             "generate-certs-serial", "generate-certs-serial.old",
-            "generate-certs-ca.conf", "generate-certs-certs.conf", "generate-certs.conf"
+            "generate-certs-ca.conf", "generate-certs-certs.conf"
             }
 
         DeleteIfExists(certfiles)
@@ -433,16 +408,13 @@ san_retry:
     ''' </summary>
     ''' <param name="certname"></param>
     ''' <param name="pw"></param>
-    ''' <param name="keysize"></param>
-    Sub GenerateRootCACertificate(certname As String, pw As String, keysize As String)
-        openssl("genrsa -passout pass:""{0}"" -out ""{CERTNAME}-secret.key"" {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
-        openssl("rsa -passin pass:""{0}"" -in ""{CERTNAME}-secret.key"" -out ""{CERTNAME}.key""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-        openssl("req -new -config generate-certs-ca.conf -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
-        openssl("ca -config generate-certs-ca.conf -batch -selfsign -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
+    Sub GenerateRootCACertificate(certname As String, pw As String)
+        openssl("ecparam -genkey -name prime256v1 -out ""{CERTNAME}.key""".Replace("{CERTNAME}", certname))
+        openssl("req -x509 -config generate-certs-ca.conf -new -SHA256 -nodes -key ""{CERTNAME}.key"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
+        openssl("ca -config generate-certs-ca.conf -batch -selfsign -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
 
         If pw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-            'openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
 
         Console.WriteLine()
@@ -453,16 +425,14 @@ san_retry:
     ''' </summary>
     ''' <param name="certname"></param>
     ''' <param name="pw"></param>
-    ''' <param name="keysize"></param>
-    Sub GenerateCertificate(certname As String, pw As String, keysize As String, rootcapw As String)
-        openssl("genrsa -passout pass:""{0}"" -out ""{CERTNAME}-secret.key"" {1}".Replace("{0}", pw).Replace("{1}", keysize).Replace("{CERTNAME}", certname))
-        openssl("rsa -passin pass:""{0}"" -in ""{CERTNAME}-secret.key"" -out ""{CERTNAME}.key""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-        openssl("req -new -config generate-certs-certs.conf -key ""{CERTNAME}.key"" -out ""{CERTNAME}.csr""".Replace("{CERTNAME}", certname))
-        openssl("ca -config generate-certs-certs.conf -batch -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -startdate {STARTDATE} -enddate {ENDDATE}".Replace("{CERTNAME}", certname).Replace("{STARTDATE}", StartDate).Replace("{ENDDATE}", EndDate))
+    ''' <param name="rootcapw"></param>
+    Sub GenerateCertificate(certname As String, pw As String, rootcapw As String)
+        openssl("ecparam -genkey -name prime256v1 -out ""{CERTNAME}.key""".Replace("{CERTNAME}", certname))
+        openssl("req -config generate-certs-certs.conf -new -SHA256 -key ""{CERTNAME}.key"" -nodes -out ""{CERTNAME}.csr"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
+        openssl("ca -config generate-certs-certs.conf -batch -in ""{CERTNAME}.csr"" -out ""{CERTNAME}.crt"" -days {CERTVALIDITYDAYS}".Replace("{CERTNAME}", certname).Replace("{CERTVALIDITYDAYS}", CertValidityDays))
 
         If rootcapw.Length > 0 Then
             openssl("pkcs12 -export -passout pass:""{0}"" -inkey ""{CERTNAME}.key"" -in ""{CERTNAME}.crt"" -out ""{CERTNAME}.pfx""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
-            'openssl("pkcs12 -passin pass:""{0}"" -passout pass:""{0}"" -in ""{CERTNAME}.pfx"" -out ""{CERTNAME}.pem""".Replace("{0}", pw).Replace("{CERTNAME}", certname))
         End If
 
         Console.WriteLine()
@@ -477,15 +447,15 @@ dir = .
 database = $dir/generate-certs-db
 new_certs_dir = $dir/
 serial = $dir/generate-certs-serial
-private_key = ./{CACERTNAME}-secret.key
+private_key = ./{CACERTNAME}.key
 certificate = ./{CACERTNAME}.crt
-default_days = 3650
+default_days = {CERTVALIDITYDAYS}
 default_md = sha256
-policy = policy_anything
+policy = policy_match
 copy_extensions = copyall
 unique_subject	= no
 
-[policy_anything]
+[policy_match]
 countryName = optional
 stateOrProvinceName = optional
 localityName = optional

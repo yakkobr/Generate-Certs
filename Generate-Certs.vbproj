@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Generate_Certs</RootNamespace>
     <TargetFramework>net5.0</TargetFramework>
-    <Version>0.0.23</Version>
+    <Version>0.0.24</Version>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
     <RepositoryUrl></RepositoryUrl>
     <Description>Generates self-signed SSL certificates</Description>
