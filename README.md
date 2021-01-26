@@ -24,7 +24,7 @@ This is a Windows/Linux app (x64) that generates a self-signed SSL certificates,
 - The **SUBJECT ALTERNATIVE NAME** is usually an alternate name, or an IP address.
 	- **Generate-Certs** supports the detection of IP addresses in the SAN field.
 - Certificates expire **3650 days** after day of certificate generation.
-- Files are created in the **SSL_Certs_Out** subdirectory from whatever directory you're in when running **Generate-Certs**.  It will tell you the path once you start the program.
+- Files are created in the **SSL_Certs_Out** subdirectory from whatever directory you're in when running **Generate-Certs**.  The full path will be displayed upon starting the program.
 
 ## Install
 
