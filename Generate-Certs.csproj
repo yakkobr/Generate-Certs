@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <RootNamespace>Generate_Certs_C_Sharp</RootNamespace>
+    <RootNamespace>Generate_Certs</RootNamespace>
     <AssemblyName>Generate-Certs</AssemblyName>
     <Version>0.0.28</Version>
     <Description>Generates self-signed SSL/TLS certificates.</Description>
