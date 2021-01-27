@@ -1,6 +1,3 @@
-
-
-
 # Generate Self-Signed SSL/TLS Certificates
 
 ### What is this?
