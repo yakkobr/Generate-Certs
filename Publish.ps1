@@ -11,8 +11,8 @@
 
 # Change the variables below, then run the script
 $DebugOrRelease = "Release"                                                 # Debug or Release
-$SolutionOrProjectPath = "C:\Projects\Generate-Certs\Generate-Certs.sln"    # Solution or Project file you want to publish
-$PublishPath = "C:\Projects\Generate-Certs\bin\Release\net5.0\publish"      # The directory you want the published files to go in
+$SolutionOrProjectPath = "C:\Projects\Generate-Certs C-Sharp\Generate-Certs C-Sharp.sln"    # Solution or Project file you want to publish
+$PublishPath = "C:\Projects\Generate-Certs C-Sharp\bin\Release\net5.0\publish"      # The directory you want the published files to go in
 $BinaryName = "Generate-Certs"                                              # Binary name from build, without the .exe extension
 $PublishSingleFile = "true"                                                 # If true, produces a single file
 $SelfContained = "false"                                                    # If true, the binary will run without installing .NET runtime
@@ -41,7 +41,13 @@ function Publish {
 }
 
 # Delete existing files in with binary name in publish path
-Remove-Item ($PublishPath + "\" + $BinaryName + "*")
+if(Test-Path ($PublishPath)) {
+    try {
+        Remove-Item ($PublishPath + "\" + $BinaryName + "*")
+    } catch {
+        
+    }
+}
 
 # Publish binaries
 # See runtime identifiers here: https://docs.microsoft.com/en-us/dotnet/core/rid-catalog
