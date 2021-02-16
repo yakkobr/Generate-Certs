@@ -27,56 +27,22 @@ This is a Windows/Linux/Mac app that generates self-signed SSL/TLS certificates,
 - Certificates expire **3650 days** after day of certificate generation.
 - Files are created in the **SSL_Certs_Out** subdirectory from whatever directory you're in when running **Generate-Certs**.  The full path will be displayed upon starting the program.
 
----
-
-# Prerequisite
-
-**.NET 5** is required on all operating systems.
-
-## Windows
-
-Open PowerShell as Administrator and run
-```
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://dot.net/v1/dotnet-install.ps1'))) -Channel 5.0"
-```
-
-[If the install fails, click here](https://docs.microsoft.com/en-us/dotnet/core/install/windows)
-
-## Linux
-
-```
-curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin -c 5.0
-```
-
-[If the install fails, click here](https://docs.microsoft.com/en-us/dotnet/core/install/linux)
-
-## macOS
-
-```
-curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin -c 5.0
-```
-
-[If the install fails, click here](https://docs.microsoft.com/en-us/dotnet/core/install/macos)
-
----
-
 # Download & Run
 
 ## Windows
 
 **win-x64:**
 
-[Download Generate-Certs_win-x64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x64.exe>), then run `Generate-Certs_win-x64.exe`
+[Download Generate-Certs_win-x64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x64.exe>), then run or open `Generate-Certs_win-x64.exe`
 
 **win-x86:**
 
-[Download Generate-Certs_win-x86.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x86.exe>), then run `Generate-Certs_win-x86.exe`
+[Download Generate-Certs_win-x86.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x86.exe>), then run or open `Generate-Certs_win-x86.exe`
 
 **win-arm64:**
 
-[Download Generate-Certs_win-arm64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-arm64.exe>), then run `Generate-Certs_win-arm64.exe`
+[Download Generate-Certs_win-arm64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-arm64.exe>), then run or open `Generate-Certs_win-arm64.exe`
 
--- 
 ## Linux
 
 **linux-64:**
@@ -99,8 +65,6 @@ wget https://github.com/asheroto/Generate-Certs/releases/latest/download/Generat
 chmod +x Generate-Certs_linux-arm64
 ./Generate-Certs_linux-arm64
 ```
-
---
 
 ### Mac
 
