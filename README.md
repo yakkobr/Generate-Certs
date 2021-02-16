@@ -1,10 +1,10 @@
 # Generate Self-Signed SSL/TLS Certificates
 
-### What is this?
+## What is this?
 
 This is a Windows/Linux/Mac app that generates self-signed SSL/TLS certificates, including the Root CA cert.
 
-### Files Created
+## Files Created
 
 **Option #1 - 1 certificate:**
 
@@ -14,10 +14,10 @@ This is a Windows/Linux/Mac app that generates self-signed SSL/TLS certificates,
 
 ![Generate-Certs Result - 2 certs](https://github.com/asheroto/Generate-Certs/blob/master/screenshots/5.png)
 
-### Why Use Generate-Certs?
+## Why Use Generate-Certs?
 1 minute to use this program compared to 30 minutes entering in and adjusting all the commands and files
 
-### Notes
+## Notes
 
 - [ECSDA certificates](https://blog.cloudflare.com/ecdsa-the-digital-signature-algorithm-of-a-better-internet/) by design (more secure than RSA) using the **secp256p1** curve
 - **If you want PFX and PEM files created** (for all files), you MUST set a Root CA Cert password.
@@ -27,37 +27,57 @@ This is a Windows/Linux/Mac app that generates self-signed SSL/TLS certificates,
 - Certificates expire **3650 days** after day of certificate generation.
 - Files are created in the **SSL_Certs_Out** subdirectory from whatever directory you're in when running **Generate-Certs**.  The full path will be displayed upon starting the program.
 
-## Install
+---
 
-### Windows
+# Prerequisite
 
-Not sure which architecture? Try the x86 version as it should work with most Windows machines.
+**.NET 5** is required on all operating systems.
+
+## Windows
+
+Open PowerShell as Administrator and run
+```
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://dot.net/v1/dotnet-install.ps1'))) -Channel 5.0"
+```
+
+[If the install fails, click here](https://docs.microsoft.com/en-us/dotnet/core/install/windows)
+
+## Linux
+
+```
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin -c 5.0
+```
+
+[If the install fails, click here](https://docs.microsoft.com/en-us/dotnet/core/install/linux)
+
+## macOS
+
+```
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin -c 5.0
+```
+
+[If the install fails, click here](https://docs.microsoft.com/en-us/dotnet/core/install/macos)
+
+---
+
+# Download & Run
+
+## Windows
 
 **win-x64:**
-
-[Download and install .NET 5 for Windows x64](https://dotnet.microsoft.com/download/dotnet/current/runtime)
 
 [Download Generate-Certs_win-x64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x64.exe>), then run `Generate-Certs_win-x64.exe`
 
 **win-x86:**
 
-[Download and install .NET 5 for Windows x86](https://dotnet.microsoft.com/download/dotnet/current/runtime)
-
 [Download Generate-Certs_win-x86.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-x86.exe>), then run `Generate-Certs_win-x86.exe`
 
 **win-arm64:**
 
-[Download and install .NET 5 for Windows arm64](https://dotnet.microsoft.com/download/dotnet/5.0) (Runtime column, under ".NET Runtime 5.x.x", arm64  Installer)
-
 [Download Generate-Certs_win-arm64.exe](<https://github.com/asheroto/Generate-Certs/releases/latest/download/Generate-Certs_win-arm64.exe>), then run `Generate-Certs_win-arm64.exe`
 
-### Linux
-
-**PREREQUISITE - Install .NET 5 for Linux if it's not already installed:**
-```
-wget dot.net/v1/dotnet-install.sh -O dotnet.sh
-bash dotnet.sh -c 5.0
-```
+-- 
+## Linux
 
 **linux-64:**
 ```
@@ -80,9 +100,9 @@ chmod +x Generate-Certs_linux-arm64
 ./Generate-Certs_linux-arm64
 ```
 
-### Mac
+--
 
-**PREREQUISITE** - [Download and install .NET 5 for Mac x64](https://dotnet.microsoft.com/download/dotnet/5.0) (Runtime column, under ".NET Runtime 5.x.x", Mac x64 Installer)
+### Mac
 
 **osx-x64:**
 ```
@@ -91,6 +111,7 @@ chmod +x Generate-Certs_osx-x64
 ./Generate-Certs_osx-x64
 ```
 
+---
 
 # Screenshots
 

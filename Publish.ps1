@@ -11,33 +11,39 @@
 
 # Change the variables below, then run the script
 $DebugOrRelease = "Release"                                                 # Debug or Release
-$SolutionOrProjectPath = "C:\Projects\Generate-Certs C-Sharp\Generate-Certs C-Sharp.sln"    # Solution or Project file you want to publish
-$PublishPath = "C:\Projects\Generate-Certs C-Sharp\bin\Release\net5.0\publish"      # The directory you want the published files to go in
+$SolutionOrProjectPath = "C:\Projects\Generate-Certs\Generate-Certs.sln"    # Solution or Project file you want to publish
+$PublishPath = "C:\Projects\Generate-Certs\bin\Release\net5.0\publish"      # The directory you want the published files to go in
 $BinaryName = "Generate-Certs"                                              # Binary name from build, without the .exe extension
 $PublishSingleFile = "true"                                                 # If true, produces a single file
-$SelfContained = "false"                                                    # If true, the binary will run without installing .NET runtime
+$PublishTrimmed = "true"                                                    # If true, reduces the size of the assembly
+$IncludeNativeLibrariesForSelfExtract = "true"                              # If true, compiles the native libraries inside of assembly
+$PublishReadyToRun = "false"                                                # If true, compiles with AOT (ahead of time) optimization
 # Change the variables above, then run the script
 
 function Publish {
     param (
-        [String] $ArchID
+        [String] $Runtime
     )
 
-    # Publish
-    dotnet publish -r $ArchID -p:PublishSingleFile=$PublishSingleFile --self-contained $SelfContained -c $DebugOrRelease --nologo --output $PublishPath $SolutionOrProjectPath
+    Write-Host $Runtime
 
-    if ($ArchID.Contains("win-")) {
+    # Publish
+    dotnet publish -r $Runtime -c $DebugOrRelease -p:PublishSingleFile=$PublishSingleFile -p:PublishTrimmed=$PublishTrimmed -p:IncludeNativeLibrariesForSelfExtract=$IncludeNativeLibrariesForSelfExtract -p:PublishReadyToRun=$PublishReadyToRun --nologo --output $PublishPath $SolutionOrProjectPath
+
+    if ($Runtime.Contains("win-")) {
         # If architecture is Windows
         $OriginalBinaryName = $BinaryName + ".exe"
-        $TargetBinaryName = $BinaryName + "_" + $ArchID + ".exe"
+        $TargetBinaryName = $BinaryName + "_" + $Runtime + ".exe"
     } else {
         # If architecture not Windows
         $OriginalBinaryName = $BinaryName
-        $TargetBinaryName = $BinaryName + "_" + $ArchID
+        $TargetBinaryName = $BinaryName + "_" + $Runtime
     }
 
     # Rename original build name to build name + architecture
     Rename-Item ($PublishPath + "\" + $OriginalBinaryName) $TargetBinaryName
+
+    Write-Host "-----------------------------------"
 }
 
 # Delete existing files in with binary name in publish path
@@ -51,13 +57,14 @@ if(Test-Path ($PublishPath)) {
 
 # Publish binaries
 # See runtime identifiers here: https://docs.microsoft.com/en-us/dotnet/core/rid-catalog
-Publish -ArchID win-x64
-Publish -ArchID win-x86
-Publish -ArchID win-arm64
-Publish -ArchID linux-x64
-Publish -ArchID linux-arm
-Publish -ArchID linux-arm64
-Publish -ArchID osx-x64
+Publish -Runtime win-x64
+Publish -Runtime win-x86
+Publish -Runtime win-arm
+Publish -Runtime win-arm64
+Publish -Runtime linux-x64
+Publish -Runtime linux-arm
+Publish -Runtime linux-arm64
+Publish -Runtime osx-x64
 
 # Open folder to publish path
 Start-Process explorer.exe -ArgumentList $PublishPath

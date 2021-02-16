@@ -84,39 +84,57 @@ namespace GenerateCerts
                 if (todo == "1")
                 {
                     // Set temp file path
-                    var tf = Path.GetTempFileName() + ".exe";
+                    var temp_openssl = Path.GetTempFileName() + ".exe";
+                    var temp_vcredist = Path.GetTempFileName() + ".exe";
 
                     try
                     {
                         // Download OpenSSL installer
-                        string url = "https://slproweb.com/download/Win32OpenSSL-1_1_1i.exe";
-                        WebClient wc = new WebClient();
+
                         Console.WriteLine("Downloading, this should take less than 5 minutes...");
-                        wc.DownloadFile(url, tf);
+
+                        WebClient wc = new WebClient();
+
+                        string vcredist_url = "https://github.com/asheroto/Generate-Certs/releases/download/OpenSSL-1.1.1i/VC_redist.x86.exe";
+                        string openssl_url = "https://github.com/asheroto/Generate-Certs/releases/download/OpenSSL-1.1.1i/Win32OpenSSL-1_1_1i.exe";
+                        wc.DownloadFile(vcredist_url, temp_vcredist);
+                        wc.DownloadFile(openssl_url, temp_openssl);
+
                         Console.WriteLine("Download complete, installing, this should take less than 5 minutes...");
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            File.Delete(tf);
+                            // Delete temp files
+                            File.Delete(temp_openssl);
+                            File.Delete(temp_vcredist);
                         }
                         catch (Exception)
                         {
                         }
-                        Console.WriteLine("Error downloading OpenSSL. Possible firewall or content filtering issue?");
+                        Console.WriteLine("Error installing OpenSSL. Possible firewall or content filtering issue?");
                         Console.ReadLine();
                         System.Environment.Exit(0);
                     }
 
                     try
                     {
+                        // Install vcredist140
+                        Process vcr = new Process();
+                        vcr.StartInfo.FileName = temp_vcredist;
+                        vcr.StartInfo.Arguments = "/install /quiet /norestart";
+                        vcr.Start();
+                        while (!vcr.HasExited)
+                        {
+                        }
+
                         // Install OpenSSL
                         Process pp = new Process();
-                        pp.StartInfo.FileName = tf;
+                        pp.StartInfo.FileName = temp_openssl;
                         pp.StartInfo.Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-";
                         pp.Start();
-                        while (!pp.HasExited == true)
+                        while (!pp.HasExited)
                         {
                         }
 
@@ -132,7 +150,9 @@ namespace GenerateCerts
                         // Delete downloaded file
                         try
                         {
-                            File.Delete(tf);
+                            // Delete temp files
+                            File.Delete(temp_openssl);
+                            File.Delete(temp_vcredist);
                         }
                         catch (Exception)
                         {
